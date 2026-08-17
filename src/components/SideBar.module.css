@@ -1,0 +1,71 @@
+.sidebar {
+  background-color: #1b2a3b;
+    width: 220px;
+    min-height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    transition: width .3s;
+
+}
+
+
+
+.logo h1 {
+  color: #61dafb;
+  font-size: 1.4rem;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.menuLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.link {
+  color: #94a3b8;
+  text-decoration: none;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.link:hover {
+  background-color: #1b2a3b;
+  color: #e2e8f0;
+}
+
+.ativo {
+  background-color: #1e3a5f;
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.sair {
+  color: #f87171;
+  margin-bottom: 40px;
+}
+
+.sair:hover {
+  background-color: rgba(248, 113, 113, 0.1);
+  color: #ef4444;
+}
+.botaoMenu {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1000;
+  cursor: pointer;
+}

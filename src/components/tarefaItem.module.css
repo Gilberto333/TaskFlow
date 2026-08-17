@@ -1,0 +1,90 @@
+.card {
+  background-color: #2d2d44;
+  border-radius: 6px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid #3d3d5c;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.headerCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.alta {
+  background-color: #ff4d4d;
+  color: #ffffff;
+}
+
+.media {
+  background-color: #ffa500;
+  color: #1e1e2f;
+}
+
+.baixa {
+  background-color: #2ecc71;
+  color: #ffffff;
+}
+
+.btnExcluir {
+  background: transparent;
+  border: none;
+  color: #a0a0a0;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.btnExcluir:hover {
+  color: #ff4d4d;
+}
+
+.texto {
+  margin: 0;
+  color: #ffffff;
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
+.cidade {
+  color: #a0a0a0;
+  font-size: 0.8rem;
+}
+
+.acoes {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+}
+
+.acoes button {
+  background-color: #3d3d5c;
+  color: #ffffff;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.acoes button:hover:not(:disabled) {
+  background-color: #61dafb;
+  color: #1e1e2f;
+}
+
+.acoes button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}

@@ -1,0 +1,153 @@
+.formulario {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.formulario input,
+.formulario select {
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  border: 1px solid #3d3d5c;
+  background-color: #1e1e2f;
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+.formulario input[type="text"]:first-child {
+  flex: 2;
+  min-width: 200px;
+}
+
+.formulario input[type="text"]:nth-child(2) {
+  flex: 1;
+  min-width: 120px;
+}
+
+.formulario select {
+  min-width: 100px;
+}
+
+.formulario button {
+  background-color: #61dafb;
+  color: #1e1e2f;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.formulario button:hover {
+  background-color: #4fa8c7;
+}
+
+
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 20, 0.6);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background-color: #1e1e2f;
+  border: 1px solid #3d3d5c;
+  border-radius: 10px;
+  padding: 28px;
+  width: 320px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: modalPop 0.18s ease-out;
+}
+
+.modal h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal input,
+.modal select {
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  border: 1px solid #3d3d5c;
+  background-color: #12121e;
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+.modal input:focus,
+.modal select:focus {
+  outline: none;
+  border-color: #61dafb;
+}
+
+.cidade {
+  font-size: 0.85rem;
+  color: #61dafb;
+  margin-top: -8px;
+}
+
+.botoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.botoes button {
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.botoes button[type="submit"] {
+  background-color: #61dafb;
+  color: #1e1e2f;
+}
+
+.botoes button[type="submit"]:hover {
+  background-color: #4fa8c7;
+}
+
+.botoes button[type="button"] {
+  background-color: transparent;
+  border: 1px solid #3d3d5c;
+  color: #cfcfe0;
+}
+
+.botoes button[type="button"]:hover {
+  background-color: #2a2a40;
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
