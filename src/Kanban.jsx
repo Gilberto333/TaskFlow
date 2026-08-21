@@ -7,10 +7,8 @@ import stylesKanban from './components/kanban.module.css'
 import './App.css'
 
 function Kanban() {
-  const [tarefas, setTarefas] = useState(() => {
-    const salvas = localStorage.getItem('kanban_tarefas')
-    return salvas ? JSON.parse(salvas) : []
-  })
+  const [tarefas, setTarefas] = useState([])
+  const URL_API = "https://6a85b5cf9c451dc67a640647.mockapi.io/taskFlow"
   const [modalAberto, setModalAberto] = useState(false)
 
   const [tarefaAtual, setTarefaAtual] = useState({
@@ -23,10 +21,18 @@ function Kanban() {
   })
 
   useEffect(() => {
-    localStorage.setItem('kanban_tarefas', JSON.stringify(tarefas))
-  }, [tarefas])
+    const buscarTarefas = async () => {
+      try {
+        const response = await axios.get(URL_API)
+        setTarefas(response.data)
+      } catch (error) {
+        console.error('Erro ao buscar tarefas da API:', error)
+      }
+    }
 
-  
+    buscarTarefas()
+  }, [])
+
   useEffect(() => {
     if (!modalAberto) return
 
@@ -74,27 +80,28 @@ function Kanban() {
     setModalAberto(true)
   }
 
-  const salvarTarefa = (novaTarefa) => {
-    if (novaTarefa.id) {
-      setTarefas(prev =>
-        prev.map(t => (t.id === novaTarefa.id ? novaTarefa : t))
-      )
-    } else {
-      setTarefas(prev => [
-        ...prev,
-        {
-          ...novaTarefa,
-          id: Date.now()
-        }
-      ])
-    }
+  // Função para salvar a tarefa via API (POST para criar, PUT para atualizar)
+  const salvarTarefa = async (novaTarefa) => {
+    try {
+      if (novaTarefa.id) {
+        const response = await axios.put(`${URL_API}/${novaTarefa.id}`, novaTarefa)
+        setTarefas(prev =>
+          prev.map(t => (t.id === novaTarefa.id ? response.data : t))
+        )
+      } else {
+        const response = await axios.post(URL_API, novaTarefa)
+        setTarefas(prev => [...prev, response.data])
+      }
 
-    setModalAberto(false)
+      setModalAberto(false)
+    } catch (error) {
+      console.error('Erro ao salvar tarefa:', error)
+      alert('Erro ao salvar a tarefa na API.')
+    }
   }
 
   const handleCepChange = async (e) => {
     const valor = e.target.value
-    
     setTarefaAtual(prev => ({ ...prev, cep: valor, cidade: '' }))
 
     const cepLimpo = valor.replace(/\D/g, '')
@@ -110,25 +117,38 @@ function Kanban() {
     salvarTarefa(tarefaAtual)
   }
 
-  const moverTarefa = (id, direcao) => {
+  const moverTarefa = async (id, direcao) => {
     const ordem = ['A fazer', 'Em andamento', 'Concluído']
-    setTarefas(prev => prev.map(t => {
-      if (t.id === id) {
-        const indexAtual = ordem.indexOf(t.status)
-        const novoIndex = direcao === 'direita' ? indexAtual + 1 : indexAtual - 1
-        if (novoIndex >= 0 && novoIndex < ordem.length) {
-          return { ...t, status: ordem[novoIndex] }
-        }
+    const tarefaParaMover = tarefas.find(t => t.id === id)
+    if (!tarefaParaMover) return
+
+    const indexAtual = ordem.indexOf(tarefaParaMover.status)
+    const novoIndex = direcao === 'direita' ? indexAtual + 1 : indexAtual - 1
+
+    if (novoIndex >= 0 && novoIndex < ordem.length) {
+      const novoStatus = ordem[novoIndex]
+      const tarefaAtualizada = { ...tarefaParaMover, status: novoStatus }
+
+      try {
+        await axios.put(`${URL_API}/${id}`, tarefaAtualizada)
+        setTarefas(prev => prev.map(t => (t.id === id ? tarefaAtualizada : t)))
+      } catch (error) {
+        console.error('Erro ao mover tarefa:', error)
       }
-      return t
-    }))
+    }
   }
 
-  
-  const excluirTarefa = (id) => {
+  const excluirTarefa = async (id) => {
     const confirmar = window.confirm('Tem certeza que deseja excluir esta tarefa?')
     if (!confirmar) return
-    setTarefas(prev => prev.filter(t => t.id !== id))
+
+    try {
+      await axios.delete(`${URL_API}/${id}`)
+      setTarefas(prev => prev.filter(t => t.id !== id))
+    } catch (error) {
+      console.error('Erro ao excluir tarefa:', error)
+      alert('Erro ao excluir a tarefa na API.')
+    }
   }
 
   const total = tarefas.length
@@ -158,7 +178,7 @@ function Kanban() {
       {modalAberto && (
         <div className={stylesForm.overlay} onClick={() => setModalAberto(false)}>
           <div className={stylesForm.modal} onClick={(e) => e.stopPropagation()}>
-            <h2>Nova tarefa</h2>
+            <h2>{tarefaAtual.id ? 'Editar tarefa' : 'Nova tarefa'}</h2>
             <form onSubmit={handleSubmitModal}>
               <input
                 type="text"
@@ -167,6 +187,16 @@ function Kanban() {
                 onChange={(e) => setTarefaAtual({ ...tarefaAtual, texto: e.target.value })}
                 autoFocus
               />
+
+              {/* Seletor de Prioridade adicionado */}
+              <select
+                value={tarefaAtual.prioridade}
+                onChange={(e) => setTarefaAtual({ ...tarefaAtual, prioridade: e.target.value })}
+              >
+                <option value="baixa">Baixa</option>
+                <option value="media">Média</option>
+                <option value="alta">Alta</option>
+              </select>
 
               <input
                 type="text"
