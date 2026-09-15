@@ -5,7 +5,7 @@ import Sobre from "./pages/sobre"
 import LayoutSideBar from './components/LayoutSideBar';
 import Kanban from './Kanban';
 import RotaPrivada from './components/RotaPrivada';
-import Modal from "./components/modal"
+
 
 function App() {
   

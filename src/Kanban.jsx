@@ -11,6 +11,8 @@ function Kanban() {
   const URL_API = "https://6a85b5cf9c451dc67a640647.mockapi.io/taskFlow"
   const [modalAberto, setModalAberto] = useState(false)
 
+  const token = localStorage.getItem("token")
+
   const [tarefaAtual, setTarefaAtual] = useState({
     id: null,
     texto: '',
@@ -80,7 +82,6 @@ function Kanban() {
     setModalAberto(true)
   }
 
-  // Função para salvar a tarefa via API (POST para criar, PUT para atualizar)
   const salvarTarefa = async (novaTarefa) => {
     try {
       if (novaTarefa.id) {
@@ -159,9 +160,15 @@ function Kanban() {
 
   return (
     <div className="container">
+
+      {token && <Sidebar />}
+
       <Header total={total} pendentes={pendentes} concluidos={concluidos} />
 
-      <main className={stylesKanban.board}>
+      <main 
+        className={stylesKanban.board} 
+        style={{ marginLeft: token ? '250px' : '0px' }}
+      >
         {colunas.map((colunaStatus) => (
           <ListaTarefas
             key={colunaStatus}
@@ -188,7 +195,6 @@ function Kanban() {
                 autoFocus
               />
 
-              {/* Seletor de Prioridade adicionado */}
               <select
                 value={tarefaAtual.prioridade}
                 onChange={(e) => setTarefaAtual({ ...tarefaAtual, prioridade: e.target.value })}
