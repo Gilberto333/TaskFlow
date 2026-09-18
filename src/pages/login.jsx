@@ -1,35 +1,43 @@
-import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../components/contexts/authcontexts"; 
 import "./login.css";
-function Login() {
-  const [usuario, setUsuario] = useState("");
-  const [senha, setSenha] = useState("");
 
-  localStorage.setItem("usuario", "admin");
-  localStorage.setItem("senha", "1234");
+function Login() {
+  const [usuarioInput, setUsuarioInput] = useState("");
+  const [senhaInput, setSenhaInput] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth(); 
+
+  
+  useEffect(() => {
+    if (!localStorage.getItem("admin_usuario")) {
+      localStorage.setItem("admin_usuario", "admin");
+      localStorage.setItem("admin_senha", "1234");
+    }
+  }, []);
+
   const entrar = (e) => {
     e.preventDefault();
-    if (
-      localStorage.getItem("usuario") !== usuario ||
-      localStorage.getItem("senha") !== senha
-    ) {
-      <Navigate to={<Login />} />;
-      alert("Senha ou Usuário incorretos! Tente novamente");
-    }
-    if (
-      localStorage.getItem("usuario") === usuario &&
-      localStorage.getItem("senha") === senha
-    ) {
-      localStorage.setItem("usuarioLogado", "true")
-    
-      
 
-      
-     
+    const usuarioSalvo = localStorage.getItem("admin_usuario") || "admin";
+    const senhaSalva = localStorage.getItem("admin_senha") || "1234";
+
+    if (usuarioInput !== usuarioSalvo || senhaInput !== senhaSalva) {
+      alert("Senha ou Usuário incorretos! Tente novamente");
+      return; 
     }
-       return navigate("/Dashboard"); 
+
+    
+    const dadosDoUsuario = { nome: usuarioInput };
+    const tokenSimulado = "token-jwt-falsificado-123456";
+    
+    login(dadosDoUsuario, tokenSimulado);
+
+   
+    navigate("/Dashboard"); 
   };
+
   return (
     <section id="sectionLogin">
       <div id="cabecalhoLogin">
@@ -41,14 +49,17 @@ function Login() {
           id="inputLoginUsuario"
           placeholder="Usuário"
           required
-          onChange={(e) => setUsuario(e.target.value)}
+          value={usuarioInput}
+          onChange={(e) => setUsuarioInput(e.target.value)}
         />
         <h5>Senha</h5>
         <input
           id="inputLoginSenha"
+          type="password"
           placeholder="Senha"
           required
-          onChange={(e) => setSenha(e.target.value)}
+          value={senhaInput}
+          onChange={(e) => setSenhaInput(e.target.value)}
         />
       </div>
       <div id="botaoFormularioLogin">

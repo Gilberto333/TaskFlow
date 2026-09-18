@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import api from './api'
+import { useAuth } from './components/contexts/authcontexts'
 import Header from './components/header'
 import ListaTarefas from './components/ListaTarefas'
 import stylesForm from './components/formulario.module.css'
@@ -8,10 +10,10 @@ import './App.css'
 
 function Kanban() {
   const [tarefas, setTarefas] = useState([])
-  const URL_API = "https://6a85b5cf9c451dc67a640647.mockapi.io/taskFlow"
   const [modalAberto, setModalAberto] = useState(false)
 
-  const token = localStorage.getItem("token")
+  
+  const { token } = useAuth()
 
   const [tarefaAtual, setTarefaAtual] = useState({
     id: null,
@@ -25,7 +27,7 @@ function Kanban() {
   useEffect(() => {
     const buscarTarefas = async () => {
       try {
-        const response = await axios.get(URL_API)
+        const response = await api.get('/tarefas')
         setTarefas(response.data)
       } catch (error) {
         console.error('Erro ao buscar tarefas da API:', error)
@@ -85,12 +87,12 @@ function Kanban() {
   const salvarTarefa = async (novaTarefa) => {
     try {
       if (novaTarefa.id) {
-        const response = await axios.put(`${URL_API}/${novaTarefa.id}`, novaTarefa)
+        const response = await api.put(`/tarefas/${novaTarefa.id}`, novaTarefa)
         setTarefas(prev =>
           prev.map(t => (t.id === novaTarefa.id ? response.data : t))
         )
       } else {
-        const response = await axios.post(URL_API, novaTarefa)
+        const response = await api.post('/tarefas', novaTarefa)
         setTarefas(prev => [...prev, response.data])
       }
 
@@ -131,7 +133,7 @@ function Kanban() {
       const tarefaAtualizada = { ...tarefaParaMover, status: novoStatus }
 
       try {
-        await axios.put(`${URL_API}/${id}`, tarefaAtualizada)
+        await api.put(`/tarefas/${id}`, tarefaAtualizada)
         setTarefas(prev => prev.map(t => (t.id === id ? tarefaAtualizada : t)))
       } catch (error) {
         console.error('Erro ao mover tarefa:', error)
@@ -144,7 +146,7 @@ function Kanban() {
     if (!confirmar) return
 
     try {
-      await axios.delete(`${URL_API}/${id}`)
+      await api.delete(`/tarefas/${id}`)
       setTarefas(prev => prev.filter(t => t.id !== id))
     } catch (error) {
       console.error('Erro ao excluir tarefa:', error)
@@ -161,7 +163,7 @@ function Kanban() {
   return (
     <div className="container">
 
-      {token && <Sidebar />}
+      {token}
 
       <Header total={total} pendentes={pendentes} concluidos={concluidos} />
 
