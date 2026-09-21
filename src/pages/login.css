@@ -1,3 +1,8 @@
+/* 1. ADICIONADO: Garante que padding e borders não alterem o tamanho total dos elementos */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: Arial, sans-serif;
@@ -50,6 +55,7 @@ body {
   color: #a0a0a0;
   font-size: 0.9rem;
   font-weight: 500;
+  text-align: center; 
 }
 
 #formularioLogin input {
@@ -61,8 +67,8 @@ body {
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.2s;
+  width: 100%;
 }
-
 
 #formularioLogin input[type="password"],
 #formularioLogin input:last-of-type {
@@ -84,6 +90,9 @@ body {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
+  
+  align-items: center;
+  justify-content: center;
 }
 
 #botaoEntrar {
