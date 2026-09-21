@@ -8,6 +8,19 @@ import stylesForm from './components/formulario.module.css'
 import stylesKanban from './components/kanban.module.css'
 import './App.css'
 
+// Mapeamentos para compatibilidade com a API
+const mapStatusParaColuna = (status) => {
+  if (status === 'Em andamento') return 'andamento'
+  if (status === 'Concluído') return 'concluido'
+  return 'afazer'
+}
+
+const mapColunaParaStatus = (coluna) => {
+  if (coluna === 'andamento') return 'Em andamento'
+  if (coluna === 'concluido') return 'Concluído'
+  return 'A fazer'
+}
+
 function Kanban() {
   const [tarefas, setTarefas] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
@@ -27,7 +40,12 @@ function Kanban() {
     const buscarTarefas = async () => {
       try {
         const response = await api.get('/tarefas')
-        setTarefas(response.data)
+        // Mapeia a propriedade 'coluna' da API para 'status' do React
+        const tarefasMapeadas = response.data.map(t => ({
+          ...t,
+          status: mapColunaParaStatus(t.coluna)
+        }))
+        setTarefas(tarefasMapeadas)
       } catch (error) {
         console.error('Erro ao buscar tarefas da API:', error)
       }
@@ -84,21 +102,38 @@ function Kanban() {
   }
 
   const salvarTarefa = async (novaTarefa) => {
+    // Prepara o payload no formato exato que o backend espera
+    const payload = {
+      texto: novaTarefa.texto,
+      prioridade: novaTarefa.prioridade,
+      cidade: novaTarefa.cidade,
+      coluna: mapStatusParaColuna(novaTarefa.status)
+    }
+
     try {
       if (novaTarefa.id) {
-        const response = await api.put(`/tarefas/${novaTarefa.id}`, novaTarefa)
+        const response = await api.put(`/tarefas/${novaTarefa.id}`, payload)
+        const tarefaAtualizada = {
+          ...response.data,
+          status: mapColunaParaStatus(response.data.coluna)
+        }
         setTarefas(prev =>
-          prev.map(t => (t.id === novaTarefa.id ? response.data : t))
+          prev.map(t => (t.id === novaTarefa.id ? tarefaAtualizada : t))
         )
       } else {
-        const response = await api.post('/tarefas', novaTarefa)
-        setTarefas(prev => [...prev, response.data])
+        const response = await api.post('/tarefas', payload)
+        const novaTarefaMapeada = {
+          ...response.data,
+          status: mapColunaParaStatus(response.data.coluna)
+        }
+        setTarefas(prev => [...prev, novaTarefaMapeada])
       }
 
       setModalAberto(false)
     } catch (error) {
       console.error('Erro ao salvar tarefa:', error)
-      alert('Erro ao salvar a tarefa na API.')
+      const mensagemErro = error.response?.data?.erro || 'Erro ao salvar a tarefa na API.'
+      alert(mensagemErro)
     }
   }
 
@@ -129,13 +164,22 @@ function Kanban() {
 
     if (novoIndex >= 0 && novoIndex < ordem.length) {
       const novoStatus = ordem[novoIndex]
-      const tarefaAtualizada = { ...tarefaParaMover, status: novoStatus }
+      const payload = {
+        ...tarefaParaMover,
+        coluna: mapStatusParaColuna(novoStatus)
+      }
 
       try {
-        await api.put(`/tarefas/${id}`, tarefaAtualizada)
+        const response = await api.put(`/tarefas/${id}`, payload)
+        const tarefaAtualizada = {
+          ...response.data,
+          status: mapColunaParaStatus(response.data.coluna)
+        }
         setTarefas(prev => prev.map(t => (t.id === id ? tarefaAtualizada : t)))
       } catch (error) {
         console.error('Erro ao mover tarefa:', error)
+        const mensagemErro = error.response?.data?.erro || 'Erro ao mover tarefa.'
+        alert(mensagemErro)
       }
     }
   }
@@ -161,7 +205,6 @@ function Kanban() {
 
   return (
     <div className="container">
-
       <Header total={total} pendentes={pendentes} concluidos={concluidos} />
 
       <main 

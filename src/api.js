@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // URL da API hospedada na Vercel
-  baseURL: "https://taskflow-api-gamma-orcin.vercel.app"
+
+  baseURL: import.meta.env.VITE_API
 });
 
 api.interceptors.request.use((config) => {
