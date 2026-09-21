@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../components/contexts/authcontexts"; 
-import api from "../services/api"; // 👈 Importe a sua instância do Axios (ajuste o caminho se necessário)
+import api from "../api"; 
 import "./login.css";
 
 function Login() {
@@ -19,24 +19,24 @@ function Login() {
     }
 
     try {
-      // 1. Envia as credenciais reais para o Backend (o backend espera email e senha)
+     
       const response = await api.post("/auth/login", {
         email: usuarioInput,
         senha: senhaInput
       });
 
-      // 2. Extrai o token real e os dados do utilizador retornados pelo backend
+   
       const { token, usuario } = response.data;
 
-      // 3. Atualiza o contexto de autenticação com os dados válidos
+      
       login(usuario, token);
 
-      // 4. Redireciona para o Dashboard
+    
       navigate("/Dashboard");
 
     } catch (error) {
       console.error("Erro no login:", error);
-      // Exibe a mensagem de erro vinda do backend (ex: "Credenciais inválidas")
+      
       const mensagemErro = error.response?.data?.erro || "Erro ao efetuar login. Verifique os seus dados.";
       alert(mensagemErro);
     }

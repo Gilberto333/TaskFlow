@@ -1,9 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // Em desenvolvimento local use: "http://localhost:3000"
-  // Em produção use a URL da sua API na Vercel/Render
-  baseURL: "http://localhost:3000"
+  // URL da API hospedada na Vercel
+  baseURL: "https://taskflow-api-gamma-orcin.vercel.app"
 });
 
 api.interceptors.request.use((config) => {
