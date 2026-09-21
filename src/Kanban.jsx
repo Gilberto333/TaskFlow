@@ -12,7 +12,6 @@ function Kanban() {
   const [tarefas, setTarefas] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
 
-  
   const { token } = useAuth()
 
   const [tarefaAtual, setTarefaAtual] = useState({
@@ -162,8 +161,6 @@ function Kanban() {
 
   return (
     <div className="container">
-
-      {token}
 
       <Header total={total} pendentes={pendentes} concluidos={concluidos} />
 
