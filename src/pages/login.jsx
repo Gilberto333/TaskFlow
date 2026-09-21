@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../components/contexts/authcontexts"; 
+import api from "../services/api"; // 👈 Importe a sua instância do Axios (ajuste o caminho se necessário)
 import "./login.css";
 
 function Login() {
@@ -9,33 +10,36 @@ function Login() {
   const navigate = useNavigate();
   const { login } = useAuth(); 
 
-  
-  useEffect(() => {
-    if (!localStorage.getItem("admin_usuario")) {
-      localStorage.setItem("admin_usuario", "admin");
-      localStorage.setItem("admin_senha", "1234");
-    }
-  }, []);
-
-  const entrar = (e) => {
+  const entrar = async (e) => {
     e.preventDefault();
 
-    const usuarioSalvo = localStorage.getItem("admin_usuario") || "admin";
-    const senhaSalva = localStorage.getItem("admin_senha") || "1234";
-
-    if (usuarioInput !== usuarioSalvo || senhaInput !== senhaSalva) {
-      alert("Senha ou Usuário incorretos! Tente novamente");
-      return; 
+    if (!usuarioInput || !senhaInput) {
+      alert("Por favor, preencha o e-mail e a palavra-passe.");
+      return;
     }
 
-    
-    const dadosDoUsuario = { nome: usuarioInput };
-    const tokenSimulado = "token-jwt-falsificado-123456";
-    
-    login(dadosDoUsuario, tokenSimulado);
+    try {
+      // 1. Envia as credenciais reais para o Backend (o backend espera email e senha)
+      const response = await api.post("/auth/login", {
+        email: usuarioInput,
+        senha: senhaInput
+      });
 
-   
-    navigate("/Dashboard"); 
+      // 2. Extrai o token real e os dados do utilizador retornados pelo backend
+      const { token, usuario } = response.data;
+
+      // 3. Atualiza o contexto de autenticação com os dados válidos
+      login(usuario, token);
+
+      // 4. Redireciona para o Dashboard
+      navigate("/Dashboard");
+
+    } catch (error) {
+      console.error("Erro no login:", error);
+      // Exibe a mensagem de erro vinda do backend (ex: "Credenciais inválidas")
+      const mensagemErro = error.response?.data?.erro || "Erro ao efetuar login. Verifique os seus dados.";
+      alert(mensagemErro);
+    }
   };
 
   return (
@@ -43,30 +47,31 @@ function Login() {
       <div id="cabecalhoLogin">
         <h3>Login</h3>
       </div>
-      <div id="formularioLogin">
-        <h5>Usuário</h5>
+      <form onSubmit={entrar} id="formularioLogin">
+        <h5>E-mail</h5>
         <input
           id="inputLoginUsuario"
-          placeholder="Usuário"
+          type="email"
+          placeholder="user@use12gmail.com"
           required
           value={usuarioInput}
           onChange={(e) => setUsuarioInput(e.target.value)}
         />
-        <h5>Senha</h5>
+        <h5>Palavra-passe</h5>
         <input
           id="inputLoginSenha"
           type="password"
-          placeholder="Senha"
+          placeholder="Palavra-passe"
           required
           value={senhaInput}
           onChange={(e) => setSenhaInput(e.target.value)}
         />
-      </div>
-      <div id="botaoFormularioLogin">
-        <button id="botaoEntrar" onClick={entrar}>
-          Entrar
-        </button>
-      </div>
+        <div id="botaoFormularioLogin">
+          <button id="botaoEntrar" type="submit">
+            Entrar
+          </button>
+        </div>
+      </form>
     </section>
   );
 }
