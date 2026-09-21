@@ -52,7 +52,7 @@ function Login() {
         <input
           id="inputLoginUsuario"
           type="email"
-          placeholder="user@use12gmail.com"
+          placeholder="email"
           required
           value={usuarioInput}
           onChange={(e) => setUsuarioInput(e.target.value)}
