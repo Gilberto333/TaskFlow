@@ -45,14 +45,21 @@ function Kanban() {
           api.get('/usuarios')
         ])
 
-        const tarefasMapeadas = resTarefas.data.map(t => ({
-          ...t,
-          usuarioId: t.usuarioId || t.usuario_id || '',
-          status: mapColunaParaStatus(t.coluna)
-        }))
+        const listaUsuarios = resUsuarios.data || []
+
+        const tarefasMapeadas = resTarefas.data.map(t => {
+          const uId = t.usuarioId || t.usuario_id
+          const user = listaUsuarios.find(u => String(u.id) === String(uId))
+          return {
+            ...t,
+            usuarioId: uId || '',
+            usuarioNome: user ? user.nome : (t.usuario_nome || t.usuarioNome || ''),
+            status: mapColunaParaStatus(t.coluna)
+          }
+        })
         
         setTarefas(tarefasMapeadas)
-        setUsuarios(resUsuarios.data || [])
+        setUsuarios(listaUsuarios)
       } catch (error) {
         console.error('Erro ao carregar dados da API:', error)
       }
@@ -124,21 +131,31 @@ function Kanban() {
     try {
       if (novaTarefa.id) {
         const response = await api.put(`/tarefas/${novaTarefa.id}`, payload)
+        const uId = response.data.usuarioId || response.data.usuario_id || novaTarefa.usuarioId
+        const user = usuarios.find(u => String(u.id) === String(uId))
+
         const tarefaAtualizada = {
           ...response.data,
-          usuarioId: response.data.usuarioId || response.data.usuario_id,
+          usuarioId: uId,
+          usuarioNome: user ? user.nome : '',
           status: mapColunaParaStatus(response.data.coluna)
         }
+
         setTarefas(prev =>
           prev.map(t => (t.id === novaTarefa.id ? tarefaAtualizada : t))
         )
       } else {
         const response = await api.post('/tarefas', payload)
+        const uId = response.data.usuarioId || response.data.usuario_id || novaTarefa.usuarioId
+        const user = usuarios.find(u => String(u.id) === String(uId))
+
         const novaTarefaMapeada = {
           ...response.data,
-          usuarioId: response.data.usuarioId || response.data.usuario_id,
+          usuarioId: uId,
+          usuarioNome: user ? user.nome : '',
           status: mapColunaParaStatus(response.data.coluna)
         }
+
         setTarefas(prev => [...prev, novaTarefaMapeada])
       }
 
@@ -192,9 +209,13 @@ function Kanban() {
 
       try {
         const response = await api.put(`/tarefas/${id}`, payload)
+        const uId = response.data.usuarioId || response.data.usuario_id || tarefaParaMover.usuarioId
+        const user = usuarios.find(u => String(u.id) === String(uId))
+
         const tarefaAtualizada = {
           ...response.data,
-          usuarioId: response.data.usuarioId || response.data.usuario_id,
+          usuarioId: uId,
+          usuarioNome: user ? user.nome : tarefaParaMover.usuarioNome,
           status: mapColunaParaStatus(response.data.coluna)
         }
         setTarefas(prev => prev.map(t => (t.id === id ? tarefaAtualizada : t)))
@@ -251,7 +272,6 @@ function Kanban() {
           <div className={stylesForm.modal} onClick={(e) => e.stopPropagation()}>
             <h2>{tarefaAtual.id ? 'Editar tarefa' : 'Nova tarefa'}</h2>
             <form onSubmit={handleSubmitModal}>
-            
               <input
                 type="text"
                 placeholder="Digite a tarefa"
@@ -261,7 +281,6 @@ function Kanban() {
                 required
               />
 
-            
               <select
                 value={tarefaAtual.prioridade}
                 onChange={(e) => setTarefaAtual({ ...tarefaAtual, prioridade: e.target.value })}
@@ -271,7 +290,6 @@ function Kanban() {
                 <option value="alta">Alta</option>
               </select>
 
-            
               <select
                 value={tarefaAtual.usuarioId}
                 onChange={(e) => setTarefaAtual({ ...tarefaAtual, usuarioId: e.target.value })}
@@ -285,7 +303,6 @@ function Kanban() {
                 ))}
               </select>
 
-           
               <input
                 type="text"
                 placeholder="CEP"
@@ -294,7 +311,6 @@ function Kanban() {
                 maxLength={9}
               />
               
-           
               {tarefaAtual.cidade && (
                 <p className={stylesForm.cidade}>📍 {tarefaAtual.cidade}</p>
               )}

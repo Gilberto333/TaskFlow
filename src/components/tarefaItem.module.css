@@ -88,3 +88,9 @@
   opacity: 0.3;
   cursor: not-allowed;
 }
+.usuario {
+  color: #61dafb;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: block;
+}
