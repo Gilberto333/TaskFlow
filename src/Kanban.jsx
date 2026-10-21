@@ -22,34 +22,43 @@ const mapColunaParaStatus = (coluna) => {
 
 function Kanban() {
   const [tarefas, setTarefas] = useState([])
+  const [usuarios, setUsuarios] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
 
-  const { token } = useAuth()
+  const { token, usuario: usuarioLogado } = useAuth()
 
   const [tarefaAtual, setTarefaAtual] = useState({
     id: null,
     texto: '',
     prioridade: 'media',
+    usuarioId: '',
     cep: '',
     cidade: '',
     status: 'A fazer'
   })
 
   useEffect(() => {
-    const buscarTarefas = async () => {
+    const carregarDados = async () => {
       try {
-        const response = await api.get('/tarefas')
-        const tarefasMapeadas = response.data.map(t => ({
+        const [resTarefas, resUsuarios] = await Promise.all([
+          api.get('/tarefas'),
+          api.get('/usuarios')
+        ])
+
+        const tarefasMapeadas = resTarefas.data.map(t => ({
           ...t,
+          usuarioId: t.usuarioId || t.usuario_id || '',
           status: mapColunaParaStatus(t.coluna)
         }))
+        
         setTarefas(tarefasMapeadas)
+        setUsuarios(resUsuarios.data || [])
       } catch (error) {
-        console.error('Erro ao buscar tarefas da API:', error)
+        console.error('Erro ao carregar dados da API:', error)
       }
     }
 
-    buscarTarefas()
+    carregarDados()
   }, [])
 
   useEffect(() => {
@@ -87,6 +96,7 @@ function Kanban() {
       id: null,
       texto: '',
       prioridade: 'media',
+      usuarioId: usuarioLogado?.id || (usuarios[0]?.id || ''),
       cep: '',
       cidade: '',
       status
@@ -95,7 +105,10 @@ function Kanban() {
   }
 
   const editarTarefa = (tarefa) => {
-    setTarefaAtual(tarefa)
+    setTarefaAtual({
+      ...tarefa,
+      usuarioId: tarefa.usuarioId || tarefa.usuario_id || usuarioLogado?.id || ''
+    })
     setModalAberto(true)
   }
 
@@ -104,6 +117,7 @@ function Kanban() {
       texto: novaTarefa.texto,
       prioridade: novaTarefa.prioridade,
       cidade: novaTarefa.cidade,
+      usuarioId: Number(novaTarefa.usuarioId),
       coluna: mapStatusParaColuna(novaTarefa.status)
     }
 
@@ -112,6 +126,7 @@ function Kanban() {
         const response = await api.put(`/tarefas/${novaTarefa.id}`, payload)
         const tarefaAtualizada = {
           ...response.data,
+          usuarioId: response.data.usuarioId || response.data.usuario_id,
           status: mapColunaParaStatus(response.data.coluna)
         }
         setTarefas(prev =>
@@ -121,6 +136,7 @@ function Kanban() {
         const response = await api.post('/tarefas', payload)
         const novaTarefaMapeada = {
           ...response.data,
+          usuarioId: response.data.usuarioId || response.data.usuario_id,
           status: mapColunaParaStatus(response.data.coluna)
         }
         setTarefas(prev => [...prev, novaTarefaMapeada])
@@ -147,7 +163,14 @@ function Kanban() {
 
   const handleSubmitModal = (e) => {
     e.preventDefault()
-    if (!tarefaAtual.texto.trim()) return
+    if (!tarefaAtual.texto.trim()) {
+      alert('Por favor, informe o texto da tarefa.')
+      return
+    }
+    if (!tarefaAtual.usuarioId) {
+      alert('Por favor, selecione um usuário responsável.')
+      return
+    }
     salvarTarefa(tarefaAtual)
   }
 
@@ -163,6 +186,7 @@ function Kanban() {
       const novoStatus = ordem[novoIndex]
       const payload = {
         ...tarefaParaMover,
+        usuarioId: Number(tarefaParaMover.usuarioId || tarefaParaMover.usuario_id),
         coluna: mapStatusParaColuna(novoStatus)
       }
 
@@ -170,6 +194,7 @@ function Kanban() {
         const response = await api.put(`/tarefas/${id}`, payload)
         const tarefaAtualizada = {
           ...response.data,
+          usuarioId: response.data.usuarioId || response.data.usuario_id,
           status: mapColunaParaStatus(response.data.coluna)
         }
         setTarefas(prev => prev.map(t => (t.id === id ? tarefaAtualizada : t)))
@@ -226,14 +251,17 @@ function Kanban() {
           <div className={stylesForm.modal} onClick={(e) => e.stopPropagation()}>
             <h2>{tarefaAtual.id ? 'Editar tarefa' : 'Nova tarefa'}</h2>
             <form onSubmit={handleSubmitModal}>
+            
               <input
                 type="text"
                 placeholder="Digite a tarefa"
                 value={tarefaAtual.texto}
                 onChange={(e) => setTarefaAtual({ ...tarefaAtual, texto: e.target.value })}
                 autoFocus
+                required
               />
 
+            
               <select
                 value={tarefaAtual.prioridade}
                 onChange={(e) => setTarefaAtual({ ...tarefaAtual, prioridade: e.target.value })}
@@ -243,6 +271,21 @@ function Kanban() {
                 <option value="alta">Alta</option>
               </select>
 
+            
+              <select
+                value={tarefaAtual.usuarioId}
+                onChange={(e) => setTarefaAtual({ ...tarefaAtual, usuarioId: e.target.value })}
+                required
+              >
+                <option value="">Selecione o Usuário Responsável</option>
+                {usuarios.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nome} ({u.email})
+                  </option>
+                ))}
+              </select>
+
+           
               <input
                 type="text"
                 placeholder="CEP"
@@ -250,15 +293,17 @@ function Kanban() {
                 onChange={handleCepChange}
                 maxLength={9}
               />
+              
+           
               {tarefaAtual.cidade && (
-                <p className={stylesForm.cidade}>{tarefaAtual.cidade}</p>
+                <p className={stylesForm.cidade}>📍 {tarefaAtual.cidade}</p>
               )}
 
               <div className={stylesForm.botoes}>
                 <button type="button" onClick={() => setModalAberto(false)}>
                   Cancelar
                 </button>
-                <button type="submit">Enviar</button>
+                <button type="submit">Salvar</button>
               </div>
             </form>
           </div>
