@@ -30,7 +30,7 @@ function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
     
       {usuarioNome && (
         <small className={styles.usuario}>
-          👤 {usuarioNome}
+           {usuarioNome}
         </small>
       )}
 
