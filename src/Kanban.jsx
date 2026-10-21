@@ -8,7 +8,6 @@ import stylesForm from './components/formulario.module.css'
 import stylesKanban from './components/kanban.module.css'
 import './App.css'
 
-// Mapeamentos para compatibilidade com a API
 const mapStatusParaColuna = (status) => {
   if (status === 'Em andamento') return 'andamento'
   if (status === 'Concluído') return 'concluido'
@@ -40,7 +39,6 @@ function Kanban() {
     const buscarTarefas = async () => {
       try {
         const response = await api.get('/tarefas')
-        // Mapeia a propriedade 'coluna' da API para 'status' do React
         const tarefasMapeadas = response.data.map(t => ({
           ...t,
           status: mapColunaParaStatus(t.coluna)
@@ -102,7 +100,6 @@ function Kanban() {
   }
 
   const salvarTarefa = async (novaTarefa) => {
-    // Prepara o payload no formato exato que o backend espera
     const payload = {
       texto: novaTarefa.texto,
       prioridade: novaTarefa.prioridade,
