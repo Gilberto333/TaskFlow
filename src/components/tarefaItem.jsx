@@ -1,7 +1,7 @@
 import styles from './tarefaItem.module.css'
 
 function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
-  const { id, texto, prioridade, status, cidade, usuarioNome } = tarefa
+  const { id, texto, prioridade, status, projetoNome } = tarefa
 
   return (
     <div
@@ -24,20 +24,11 @@ function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
         )}
       </div>
 
-     
       <p className={styles.texto}>{texto}</p>
 
-    
-      {usuarioNome && (
-        <small className={styles.usuario}>
-           {usuarioNome}
-        </small>
-      )}
-
-   
-      {cidade && (
+      {projetoNome && (
         <small className={styles.cidade}>
-          📍 {cidade}
+           {projetoNome}
         </small>
       )}
 

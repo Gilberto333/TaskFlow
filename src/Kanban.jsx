@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import api from './api'
 import { useAuth } from './components/contexts/authcontexts'
 import Header from './components/header'
@@ -22,44 +21,43 @@ const mapColunaParaStatus = (coluna) => {
 
 function Kanban() {
   const [tarefas, setTarefas] = useState([])
-  const [usuarios, setUsuarios] = useState([])
+  const [projetos, setProjetos] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
+  const [modalProjetoAberto, setModalProjetoAberto] = useState(false)
+  const [nomeNovoProjeto, setNomeNovoProjeto] = useState('')
 
-  const { token, usuario: usuarioLogado } = useAuth()
+  const { token } = useAuth()
 
   const [tarefaAtual, setTarefaAtual] = useState({
     id: null,
     texto: '',
     prioridade: 'media',
-    usuarioId: '',
-    cep: '',
-    cidade: '',
+    projetoId: '',
     status: 'A fazer'
   })
 
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        const [resTarefas, resUsuarios] = await Promise.all([
+        const [resTarefas, resProjetos] = await Promise.all([
           api.get('/tarefas'),
-          api.get('/usuarios')
+          api.get('/projetos')
         ])
 
-        const listaUsuarios = resUsuarios.data || []
+        const listaProjetos = resProjetos.data || []
+        setProjetos(listaProjetos)
 
-        const tarefasMapeadas = resTarefas.data.map(t => {
-          const uId = t.usuarioId || t.usuario_id
-          const user = listaUsuarios.find(u => String(u.id) === String(uId))
+        const tarefasMapeadas = (resTarefas.data || []).map(t => {
+          const pId = t.projetoId || t.projeto_id
+          const proj = listaProjetos.find(p => String(p.id) === String(pId))
           return {
             ...t,
-            usuarioId: uId || '',
-            usuarioNome: user ? user.nome : (t.usuario_nome || t.usuarioNome || ''),
+            projetoId: pId || '',
+            projetoNome: proj ? proj.nome : (t.projeto_nome || t.projetoNome || ''),
             status: mapColunaParaStatus(t.coluna)
           }
         })
-        
         setTarefas(tarefasMapeadas)
-        setUsuarios(listaUsuarios)
       } catch (error) {
         console.error('Erro ao carregar dados da API:', error)
       }
@@ -69,43 +67,28 @@ function Kanban() {
   }, [])
 
   useEffect(() => {
-    if (!modalAberto) return
+    if (!modalAberto && !modalProjetoAberto) return
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        setModalAberto(false)
+        if (modalProjetoAberto) {
+          setModalProjetoAberto(false)
+        } else {
+          setModalAberto(false)
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [modalAberto])
-
-  const consultarCidade = async (cepInput) => {
-    const cepLimpo = cepInput.replace(/\D/g, '')
-    if (cepLimpo.length !== 8) return ''
-
-    try {
-      const response = await axios.get(`https://viacep.com.br/ws/${cepLimpo}/json/`)
-      if (response.data.erro) {
-        alert('CEP não encontrado!')
-        return ''
-      }
-      return `${response.data.localidade} - ${response.data.uf}`
-    } catch (error) {
-      console.error('Erro ao consultar CEP:', error)
-      return ''
-    }
-  }
+  }, [modalAberto, modalProjetoAberto])
 
   const abrirNovaTarefa = (status) => {
     setTarefaAtual({
       id: null,
       texto: '',
       prioridade: 'media',
-      usuarioId: usuarioLogado?.id || (usuarios[0]?.id || ''),
-      cep: '',
-      cidade: '',
+      projetoId: projetos[0]?.id || '',
       status
     })
     setModalAberto(true)
@@ -114,30 +97,34 @@ function Kanban() {
   const editarTarefa = (tarefa) => {
     setTarefaAtual({
       ...tarefa,
-      usuarioId: tarefa.usuarioId || tarefa.usuario_id || usuarioLogado?.id || ''
+      projetoId: tarefa.projetoId || tarefa.projeto_id || (projetos[0]?.id || '')
     })
     setModalAberto(true)
   }
 
   const salvarTarefa = async (novaTarefa) => {
+    if (!novaTarefa.projetoId) {
+      alert('Selecione ou cadastre um projeto antes de salvar a tarefa.')
+      return
+    }
+
     const payload = {
       texto: novaTarefa.texto,
       prioridade: novaTarefa.prioridade,
-      cidade: novaTarefa.cidade,
-      usuarioId: Number(novaTarefa.usuarioId),
+      projetoId: Number(novaTarefa.projetoId),
       coluna: mapStatusParaColuna(novaTarefa.status)
     }
 
     try {
       if (novaTarefa.id) {
         const response = await api.put(`/tarefas/${novaTarefa.id}`, payload)
-        const uId = response.data.usuarioId || response.data.usuario_id || novaTarefa.usuarioId
-        const user = usuarios.find(u => String(u.id) === String(uId))
+        const pId = response.data.projetoId || response.data.projeto_id || novaTarefa.projetoId
+        const proj = projetos.find(p => String(p.id) === String(pId))
 
         const tarefaAtualizada = {
           ...response.data,
-          usuarioId: uId,
-          usuarioNome: user ? user.nome : '',
+          projetoId: pId,
+          projetoNome: proj ? proj.nome : '',
           status: mapColunaParaStatus(response.data.coluna)
         }
 
@@ -146,13 +133,13 @@ function Kanban() {
         )
       } else {
         const response = await api.post('/tarefas', payload)
-        const uId = response.data.usuarioId || response.data.usuario_id || novaTarefa.usuarioId
-        const user = usuarios.find(u => String(u.id) === String(uId))
+        const pId = response.data.projetoId || response.data.projeto_id || novaTarefa.projetoId
+        const proj = projetos.find(p => String(p.id) === String(pId))
 
         const novaTarefaMapeada = {
           ...response.data,
-          usuarioId: uId,
-          usuarioNome: user ? user.nome : '',
+          projetoId: pId,
+          projetoNome: proj ? proj.nome : '',
           status: mapColunaParaStatus(response.data.coluna)
         }
 
@@ -167,14 +154,25 @@ function Kanban() {
     }
   }
 
-  const handleCepChange = async (e) => {
-    const valor = e.target.value
-    setTarefaAtual(prev => ({ ...prev, cep: valor, cidade: '' }))
+  const handleSalvarNovoProjeto = async (e) => {
+    e.preventDefault()
+    if (!nomeNovoProjeto.trim()) {
+      alert('Por favor, informe o nome do projeto.')
+      return
+    }
 
-    const cepLimpo = valor.replace(/\D/g, '')
-    if (cepLimpo.length === 8) {
-      const cidadeEncontrada = await consultarCidade(valor)
-      setTarefaAtual(prev => ({ ...prev, cidade: cidadeEncontrada }))
+    try {
+      const response = await api.post('/projetos', { nome: nomeNovoProjeto.trim() })
+      const novoProjetoCriado = response.data
+
+      setProjetos(prev => [...prev, novoProjetoCriado])
+      setTarefaAtual(prev => ({ ...prev, projetoId: novoProjetoCriado.id }))
+      setNomeNovoProjeto('')
+      setModalProjetoAberto(false)
+    } catch (error) {
+      console.error('Erro ao cadastrar projeto:', error)
+      const mensagemErro = error.response?.data?.erro || 'Erro ao criar projeto na API.'
+      alert(mensagemErro)
     }
   }
 
@@ -182,10 +180,6 @@ function Kanban() {
     e.preventDefault()
     if (!tarefaAtual.texto.trim()) {
       alert('Por favor, informe o texto da tarefa.')
-      return
-    }
-    if (!tarefaAtual.usuarioId) {
-      alert('Por favor, selecione um usuário responsável.')
       return
     }
     salvarTarefa(tarefaAtual)
@@ -203,19 +197,19 @@ function Kanban() {
       const novoStatus = ordem[novoIndex]
       const payload = {
         ...tarefaParaMover,
-        usuarioId: Number(tarefaParaMover.usuarioId || tarefaParaMover.usuario_id),
+        projetoId: Number(tarefaParaMover.projetoId || tarefaParaMover.projeto_id),
         coluna: mapStatusParaColuna(novoStatus)
       }
 
       try {
         const response = await api.put(`/tarefas/${id}`, payload)
-        const uId = response.data.usuarioId || response.data.usuario_id || tarefaParaMover.usuarioId
-        const user = usuarios.find(u => String(u.id) === String(uId))
+        const pId = response.data.projetoId || response.data.projeto_id || tarefaParaMover.projetoId
+        const proj = projetos.find(p => String(p.id) === String(pId))
 
         const tarefaAtualizada = {
           ...response.data,
-          usuarioId: uId,
-          usuarioNome: user ? user.nome : tarefaParaMover.usuarioNome,
+          projetoId: pId,
+          projetoNome: proj ? proj.nome : tarefaParaMover.projetoNome,
           status: mapColunaParaStatus(response.data.coluna)
         }
         setTarefas(prev => prev.map(t => (t.id === id ? tarefaAtualizada : t)))
@@ -267,6 +261,7 @@ function Kanban() {
         ))}
       </main>
 
+      {/* MODAL DE TAREFA */}
       {modalAberto && (
         <div className={stylesForm.overlay} onClick={() => setModalAberto(false)}>
           <div className={stylesForm.modal} onClick={(e) => e.stopPropagation()}>
@@ -290,29 +285,31 @@ function Kanban() {
                 <option value="alta">Alta</option>
               </select>
 
-              <select
-                value={tarefaAtual.usuarioId}
-                onChange={(e) => setTarefaAtual({ ...tarefaAtual, usuarioId: e.target.value })}
-                required
-              >
-                <option value="">Selecione o Usuário Responsável</option>
-                {usuarios.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.nome} ({u.email})
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="text"
-                placeholder="CEP"
-                value={tarefaAtual.cep}
-                onChange={handleCepChange}
-                maxLength={9}
-              />
-              
-              {tarefaAtual.cidade && (
-                <p className={stylesForm.cidade}>📍 {tarefaAtual.cidade}</p>
+              {/* SELECT OU ALERTA DE PROJETOS */}
+              {projetos.length > 0 ? (
+                <select
+                  value={tarefaAtual.projetoId}
+                  onChange={(e) => setTarefaAtual({ ...tarefaAtual, projetoId: e.target.value })}
+                  required
+                >
+                  <option value="" disabled>Selecione um projeto</option>
+                  {projetos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      📁 {p.nome}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className={stylesForm.semProjetos}>
+                  <p>Você ainda não possui projetos cadastrados.</p>
+                  <button
+                    type="button"
+                    className={stylesForm.btnCadastrarProjeto}
+                    onClick={() => setModalProjetoAberto(true)}
+                  >
+                    + Cadastrar Projeto
+                  </button>
+                </div>
               )}
 
               <div className={stylesForm.botoes}>
@@ -320,6 +317,32 @@ function Kanban() {
                   Cancelar
                 </button>
                 <button type="submit">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+     
+      {modalProjetoAberto && (
+        <div className={stylesForm.overlay} onClick={() => setModalProjetoAberto(false)}>
+          <div className={stylesForm.modal} onClick={(e) => e.stopPropagation()}>
+            <h2>Novo Projeto</h2>
+            <form onSubmit={handleSalvarNovoProjeto}>
+              <input
+                type="text"
+                placeholder="Nome do projeto"
+                value={nomeNovoProjeto}
+                onChange={(e) => setNomeNovoProjeto(e.target.value)}
+                autoFocus
+                required
+              />
+
+              <div className={stylesForm.botoes}>
+                <button type="button" onClick={() => setModalProjetoAberto(false)}>
+                  Cancelar
+                </button>
+                <button type="submit">Salvar Projeto</button>
               </div>
             </form>
           </div>

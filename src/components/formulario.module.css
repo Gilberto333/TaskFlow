@@ -44,8 +44,6 @@
   background-color: #4fa8c7;
 }
 
-
-
 .overlay {
   position: fixed;
   inset: 0;
@@ -98,6 +96,39 @@
 .modal select:focus {
   outline: none;
   border-color: #61dafb;
+}
+
+.semProjetos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: rgba(97, 218, 251, 0.08);
+  border: 1px dashed #61dafb;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.semProjetos p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #cfcfe0;
+}
+
+.btnCadastrarProjeto {
+  background-color: #61dafb;
+  color: #1e1e2f;
+  border: none;
+  padding: 0.5rem 0.8rem;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s;
+}
+
+.btnCadastrarProjeto:hover {
+  background-color: #4fa8c7;
 }
 
 .cidade {
