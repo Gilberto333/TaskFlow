@@ -1,7 +1,10 @@
 import styles from './tarefaItem.module.css'
 
 function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
-  const { id, texto, prioridade, status, cidade, usuarioNome } = tarefa
+  // ===== INÍCIO DA ALTERAÇÃO - SELECT DE PROJETOS =====
+  // Substituído o campo 'cidade' por 'projetoNome' na desestruturação da prop tarefa
+  const { id, texto, prioridade, status, projetoNome } = tarefa
+  // ===== FIM DA ALTERAÇÃO - SELECT DE PROJETOS =====
 
   return (
     <div
@@ -24,22 +27,16 @@ function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
         )}
       </div>
 
-     
       <p className={styles.texto}>{texto}</p>
 
-    
-      {usuarioNome && (
-        <small className={styles.usuario}>
-           {usuarioNome}
-        </small>
-      )}
-
-   
-      {cidade && (
+      {/* ===== INÍCIO DA ALTERAÇÃO - SELECT DE PROJETOS ===== */}
+      {/* Exibição do nome do projeto vinculado no card em vez do local/cidade */}
+      {projetoNome && (
         <small className={styles.cidade}>
-          📍 {cidade}
+          📁 {projetoNome}
         </small>
       )}
+      {/* ===== FIM DA ALTERAÇÃO - SELECT DE PROJETOS ===== */}
 
       {onMover && (
         <div className={styles.acoes}>
