@@ -44,8 +44,6 @@
   background-color: #4fa8c7;
 }
 
-
-
 .overlay {
   position: fixed;
   inset: 0;
@@ -104,6 +102,71 @@
   font-size: 0.85rem;
   color: #61dafb;
   margin-top: -8px;
+}
+
+
+.secaoProjeto {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.headerProjeto {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.labelProjeto {
+  font-size: 0.85rem;
+  color: #a0a0a0;
+  font-weight: 500;
+}
+
+.btnAdicionarProjeto {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background-color: #61dafb;
+  color: #1e1e2f;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btnAdicionarProjeto:hover {
+  background-color: #4fa8c7;
+  transform: scale(1.05);
+}
+
+.formCriarProjeto {
+  display: flex;
+  gap: 6px;
+}
+
+.formCriarProjeto input {
+  flex: 1;
+}
+
+.formCriarProjeto button {
+  background-color: #61dafb;
+  color: #1e1e2f;
+  border: none;
+  padding: 0.5rem 0.8rem;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.selectDisabled {
+  opacity: 0.75;
+  cursor: not-allowed;
 }
 
 .botoes {
