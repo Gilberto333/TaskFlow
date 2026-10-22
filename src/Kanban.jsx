@@ -23,17 +23,16 @@ function Kanban() {
   const [tarefas, setTarefas] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
 
-  // CORREÇÃO: Lista de usuários iniciada vazia para popular o Select e resolver o Responsável
+  // Lista de utilizadores para o Select e resolução do Responsável
   const [usuarios, setUsuarios] = useState([])
 
-  // CORREÇÃO: Lista de projetos iniciada puramente vazia (removido qualquer dado estático/padrão)
+  // Lista de projetos
   const [projetos, setProjetos] = useState([])
   const [exibirFormNovoProjeto, setExibirFormNovoProjeto] = useState(false)
   const [nomeNovoProjeto, setNomeNovoProjeto] = useState('')
 
   const { token } = useAuth()
 
-  // CORREÇÃO: Estado inicial da tarefa com IDs e dados vazios
   const [tarefaAtual, setTarefaAtual] = useState({
     id: null,
     texto: '',
@@ -61,25 +60,33 @@ function Kanban() {
     buscarTarefas()
   }, [])
 
-  // Buscar usuários para o Select de Usuários
+  // Buscar utilizadores da API
   useEffect(() => {
     const buscarUsuarios = async () => {
       try {
         const response = await api.get('/usuarios')
         setUsuarios(response.data || [])
       } catch (error) {
-        console.error('Erro ao buscar usuários:', error)
+        console.error('Erro ao buscar utilizadores:', error)
       }
     }
 
     buscarUsuarios()
   }, [])
 
-  // Buscar projetos para o Select de Projetos
+  // CORREÇÃO: Buscar projetos e filtrar "Projetos para fazer logo" vindo do Backend/BD
   const buscarProjetos = async () => {
     try {
       const response = await api.get('/projetos')
-      setProjetos(response.data || [])
+      const listaProjetos = response.data || []
+      
+      // CORREÇÃO: Remoção estrita do projeto padrão retornado da API
+      const projetosFiltrados = listaProjetos.filter(p => {
+        const nome = (p.nome || p.descricao || p.texto || '').trim().toLowerCase()
+        return nome !== 'projetos para fazer logo'
+      })
+
+      setProjetos(projetosFiltrados)
     } catch (error) {
       console.error('Erro ao buscar projetos:', error)
     }
@@ -103,7 +110,6 @@ function Kanban() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [modalAberto])
 
-  // CORREÇÃO: Abertura de nova tarefa atribuindo os seletores iniciais
   const abrirNovaTarefa = (status) => {
     setTarefaAtual({
       id: null,
@@ -118,30 +124,39 @@ function Kanban() {
     setModalAberto(true)
   }
 
-  // CORREÇÃO: Edição da tarefa recuperando corretamente usuario_id e projeto_id
+  // CORREÇÃO: Recuperação abrangente das chaves de projeto_id e usuario_id
   const editarTarefa = (tarefa) => {
+    const projId = tarefa.projeto_id || tarefa.projetoId || (typeof tarefa.projeto === 'object' ? (tarefa.projeto?.id || tarefa.projeto?._id) : tarefa.projeto) || ''
+    const usrId = tarefa.usuario_id || tarefa.usuarioId || (typeof tarefa.usuario === 'object' ? (tarefa.usuario?.id || tarefa.usuario?._id) : tarefa.usuario) || ''
+
     setTarefaAtual({
       ...tarefa,
-      usuario_id: tarefa.usuario_id || tarefa.usuarioId || (typeof tarefa.usuario === 'object' ? tarefa.usuario?.id : tarefa.usuario) || '',
-      projeto_id: tarefa.projeto_id || tarefa.projetoId || (typeof tarefa.projeto === 'object' ? tarefa.projeto?.id : tarefa.projeto) || ''
+      usuario_id: usrId,
+      projeto_id: projId
     })
     setExibirFormNovoProjeto(false)
     setNomeNovoProjeto('')
     setModalAberto(true)
   }
 
-  // CORREÇÃO: Payload de salvar enviando variações de chave para garantir compatibilidade com o backend
+  // CORREÇÃO: Payload completo enviando id como Número e String para máxima compatibilidade com a API
   const salvarTarefa = async (novaTarefa) => {
+    const rawProjId = novaTarefa.projeto_id
+    const parsedProjId = !isNaN(Number(rawProjId)) && rawProjId !== '' ? Number(rawProjId) : rawProjId
+
+    const rawUsrId = novaTarefa.usuario_id
+    const parsedUsrId = !isNaN(Number(rawUsrId)) && rawUsrId !== '' ? Number(rawUsrId) : rawUsrId
+
     const payload = {
       texto: novaTarefa.texto,
       descricao: novaTarefa.texto,
-      usuario_id: novaTarefa.usuario_id,
-      usuarioId: novaTarefa.usuario_id,
-      usuario: novaTarefa.usuario_id,
+      usuario_id: parsedUsrId,
+      usuarioId: parsedUsrId,
+      usuario: parsedUsrId,
       prioridade: novaTarefa.prioridade,
-      projeto_id: novaTarefa.projeto_id,
-      projetoId: novaTarefa.projeto_id,
-      projeto: novaTarefa.projeto_id,
+      projeto_id: parsedProjId,
+      projetoId: parsedProjId,
+      projeto: parsedProjId,
       coluna: mapStatusParaColuna(novaTarefa.status)
     }
 
@@ -172,7 +187,7 @@ function Kanban() {
     }
   }
 
-  // CORREÇÃO: Cadastro de projeto isolado que adiciona à lista e seleciona o ID criado
+  // CORREÇÃO: Cadastro de projeto com atualização do estado e seleção imediata
   const handleCriarProjeto = async (e) => {
     if (e) {
       e.preventDefault()
@@ -259,28 +274,32 @@ function Kanban() {
     }
   }
 
-  // CORREÇÃO: Cruzamento de dados entre Tarefas e Projetos/Usuários para garantir que Responsável e Projeto sejam exibidos nos cards
+  // CORREÇÃO: Mapeamento resiliente convertendo IDs em String para evitar falha no cruzamento de dados (Number vs String)
   const tarefasProcessadas = tarefas.map(t => {
-    // Resolução do Nome do Responsável
+    // Resolução do Responsável
     let nomeUsr = t.usuario_nome || t.usuarioNome
     if (!nomeUsr && typeof t.usuario === 'object' && t.usuario) {
       nomeUsr = t.usuario.nome || t.usuario.name || t.usuario.email
     }
     if (!nomeUsr) {
-      const idU = t.usuario_id || t.usuarioId || (typeof t.usuario !== 'object' ? t.usuario : null)
-      const u = usuarios.find(usr => String(usr.id || usr._id) === String(idU))
-      if (u) nomeUsr = u.nome || u.name || u.email
+      const idU = t.usuario_id ?? t.usuarioId ?? (typeof t.usuario !== 'object' ? t.usuario : null)
+      if (idU !== null && idU !== undefined) {
+        const u = usuarios.find(usr => String(usr.id || usr._id) === String(idU))
+        if (u) nomeUsr = u.nome || u.name || u.email
+      }
     }
 
-    // Resolução do Nome do Projeto
+    // Resolução do Projeto
     let nomeProj = t.projeto_nome || t.projetoNome
     if (!nomeProj && typeof t.projeto === 'object' && t.projeto) {
       nomeProj = t.projeto.nome || t.projeto.descricao || t.projeto.texto
     }
     if (!nomeProj) {
-      const idP = t.projeto_id || t.projetoId || (typeof t.projeto !== 'object' ? t.projeto : null)
-      const p = projetos.find(proj => String(proj.id || proj._id) === String(idP))
-      if (p) nomeProj = p.nome || p.descricao || p.texto
+      const idP = t.projeto_id ?? t.projetoId ?? (typeof t.projeto !== 'object' ? t.projeto : null)
+      if (idP !== null && idP !== undefined) {
+        const p = projetos.find(proj => String(proj.id || proj._id) === String(idP))
+        if (p) nomeProj = p.nome || p.descricao || p.texto
+      }
     }
 
     return {
@@ -358,7 +377,7 @@ function Kanban() {
                 <option value="alta">Alta</option>
               </select>
 
-              {/* Gerenciamento de Projetos com botão "+" */}
+              {/* Seção de Projetos */}
               <div className={stylesForm.secaoProjeto}>
                 <div className={stylesForm.headerProjeto}>
                   <label className={stylesForm.labelProjeto}>Projeto</label>
@@ -397,7 +416,7 @@ function Kanban() {
                   </div>
                 )}
 
-                {/* CORREÇÃO: Select sem a opção "Projetos para fazer logo". Exibe apenas a mensagem quando vazio ou as opções cadastradas */}
+                {/* CORREÇÃO: Select dinâmico que exibe apenas aviso quando vazio ou projetos criados */}
                 {projetos.length === 0 ? (
                   <select disabled className={stylesForm.selectDisabled}>
                     <option value="">Não há projetos cadastrados.</option>
