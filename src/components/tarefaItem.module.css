@@ -57,9 +57,20 @@
   word-break: break-word;
 }
 
-.cidade {
-  color: #a0a0a0;
+/* CORREÇÃO: Estilização do bloco de detalhes (Responsável e Projeto) abaixo da descrição */
+.detalhesCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-size: 0.8rem;
+  color: #b0b0c0;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid #3d3d5c;
+}
+
+.infoItem strong {
+  color: #61dafb;
 }
 
 .acoes {
@@ -87,10 +98,4 @@
 .acoes button:disabled {
   opacity: 0.3;
   cursor: not-allowed;
-}
-.usuario {
-  color: #61dafb;
-  font-size: 0.8rem;
-  font-weight: 500;
-  display: block;
 }

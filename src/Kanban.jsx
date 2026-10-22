@@ -23,7 +23,7 @@ function Kanban() {
   const [tarefas, setTarefas] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
 
-  // CORREÇÃO: Adicionado estado para armazenar a lista de usuários do Select de Usuários
+  // Lista de usuários para o Select e resolução no card
   const [usuarios, setUsuarios] = useState([])
 
   // Gerenciamento de projetos
@@ -33,7 +33,6 @@ function Kanban() {
 
   const { token } = useAuth()
 
-  // CORREÇÃO: Restaurado o campo usuario_id e mantido o campo projeto_id em tarefaAtual
   const [tarefaAtual, setTarefaAtual] = useState({
     id: null,
     texto: '',
@@ -43,7 +42,7 @@ function Kanban() {
     status: 'A fazer'
   })
 
-  // Buscar tarefas ao carregar
+  // Buscar tarefas da API
   useEffect(() => {
     const buscarTarefas = async () => {
       try {
@@ -61,7 +60,7 @@ function Kanban() {
     buscarTarefas()
   }, [])
 
-  // CORREÇÃO: Restaurada busca de usuários cadastrados na API para o Select de Usuário
+  // Buscar usuários para o Select
   useEffect(() => {
     const buscarUsuarios = async () => {
       try {
@@ -75,7 +74,7 @@ function Kanban() {
     buscarUsuarios()
   }, [])
 
-  // Buscar projetos cadastrados
+  // Buscar projetos para o Select
   const buscarProjetos = async () => {
     try {
       const response = await api.get('/projetos')
@@ -103,7 +102,6 @@ function Kanban() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [modalAberto])
 
-  // CORREÇÃO: Abertura de nova tarefa contendo estado inicial de Usuário e Projeto
   const abrirNovaTarefa = (status) => {
     setTarefaAtual({
       id: null,
@@ -118,7 +116,6 @@ function Kanban() {
     setModalAberto(true)
   }
 
-  // CORREÇÃO: Edição de tarefa preservando os vínculos de usuário e projeto
   const editarTarefa = (tarefa) => {
     setTarefaAtual({
       ...tarefa,
@@ -130,7 +127,6 @@ function Kanban() {
     setModalAberto(true)
   }
 
-  // CORREÇÃO: Payload de salvar tarefa enviando texto, descricao, usuario_id, prioridade, projeto_id e coluna
   const salvarTarefa = async (novaTarefa) => {
     const payload = {
       texto: novaTarefa.texto,
@@ -169,7 +165,6 @@ function Kanban() {
     }
   }
 
-  // CORREÇÃO: Isolamento de evento em handleCriarProjeto e inclusão do campo 'descricao' no payload do projeto
   const handleCriarProjeto = async (e) => {
     if (e) {
       e.preventDefault()
@@ -182,7 +177,6 @@ function Kanban() {
     }
 
     try {
-      // CORREÇÃO: Enviando nome, descricao e texto para passar por qualquer regra de validação do backend
       const response = await api.post('/projetos', {
         nome: nomeNovoProjeto.trim(),
         descricao: nomeNovoProjeto.trim(),
@@ -192,10 +186,8 @@ function Kanban() {
       const novoProjeto = response.data
       const novoId = novoProjeto.id || novoProjeto._id || novoProjeto.novoId
 
-      // Atualiza lista de projetos
       setProjetos(prev => [...prev, novoProjeto])
 
-      // Seleciona o novo projeto imediatamente no Select
       setTarefaAtual(prev => ({
         ...prev,
         projeto_id: novoId || prev.projeto_id
@@ -259,9 +251,38 @@ function Kanban() {
     }
   }
 
-  const total = tarefas.length
-  const pendentes = tarefas.filter(t => t.status !== 'Concluído').length
-  const concluidos = tarefas.filter(t => t.status === 'Concluído').length
+  // CORREÇÃO: Enriquecimento das tarefas com nome do responsável e do projeto para exibição nos cards
+  const tarefasProcessadas = tarefas.map(t => {
+    let nomeUsr = t.usuario_nome || t.usuarioNome
+    if (!nomeUsr && typeof t.usuario === 'object' && t.usuario) {
+      nomeUsr = t.usuario.nome || t.usuario.name || t.usuario.email
+    }
+    if (!nomeUsr) {
+      const idU = t.usuario_id || t.usuarioId || (typeof t.usuario !== 'object' ? t.usuario : null)
+      const u = usuarios.find(usr => String(usr.id || usr._id) === String(idU))
+      if (u) nomeUsr = u.nome || u.name || u.email
+    }
+
+    let nomeProj = t.projeto_nome || t.projetoNome
+    if (!nomeProj && typeof t.projeto === 'object' && t.projeto) {
+      nomeProj = t.projeto.nome || t.projeto.descricao || t.projeto.texto
+    }
+    if (!nomeProj) {
+      const idP = t.projeto_id || t.projetoId || (typeof t.projeto !== 'object' ? t.projeto : null)
+      const p = projetos.find(proj => String(proj.id || proj._id) === String(idP))
+      if (p) nomeProj = p.nome || p.descricao || p.texto
+    }
+
+    return {
+      ...t,
+      usuario_nome: nomeUsr,
+      projeto_nome: nomeProj
+    }
+  })
+
+  const total = tarefasProcessadas.length
+  const pendentes = tarefasProcessadas.filter(t => t.status !== 'Concluído').length
+  const concluidos = tarefasProcessadas.filter(t => t.status === 'Concluído').length
 
   const colunas = ['A fazer', 'Em andamento', 'Concluído']
 
@@ -277,7 +298,7 @@ function Kanban() {
           <ListaTarefas
             key={colunaStatus}
             statusColuna={colunaStatus}
-            tarefas={tarefas.filter(t => t.status === colunaStatus)}
+            tarefas={tarefasProcessadas.filter(t => t.status === colunaStatus)}
             onMover={moverTarefa}
             onExcluir={excluirTarefa}
             onNovaTarefa={abrirNovaTarefa}
@@ -291,7 +312,6 @@ function Kanban() {
           <div className={stylesForm.modal} onClick={(e) => e.stopPropagation()}>
             <h2>{tarefaAtual.id ? 'Editar tarefa' : 'Nova tarefa'}</h2>
             <form onSubmit={handleSubmitModal}>
-              {/* Input de texto da tarefa */}
               <input
                 type="text"
                 placeholder="Digite a tarefa"
@@ -301,7 +321,7 @@ function Kanban() {
                 required
               />
 
-              {/* CORREÇÃO: Restaurado o Select de Usuário */}
+              {/* Select de Usuários */}
               <select
                 value={tarefaAtual.usuario_id}
                 onChange={(e) => setTarefaAtual({ ...tarefaAtual, usuario_id: e.target.value })}
@@ -346,7 +366,6 @@ function Kanban() {
                   </button>
                 </div>
 
-                {/* CORREÇÃO: Formulário de novo projeto com botões do tipo "button" para não submeter o formulário pai */}
                 {exibirFormNovoProjeto && (
                   <div className={stylesForm.formCriarProjeto}>
                     <input
@@ -368,7 +387,7 @@ function Kanban() {
                   </div>
                 )}
 
-                {/* Select de Projetos */}
+                {/* CORREÇÃO: Select de Projetos com placeholder limpo "Selecione um projeto" (Sem o texto "Projetos para fazer logo") */}
                 {projetos.length === 0 ? (
                   <select disabled className={stylesForm.selectDisabled}>
                     <option value="">Não há projetos cadastrados.</option>

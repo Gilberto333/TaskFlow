@@ -11,7 +11,7 @@ function Modal({
   const [texto, setTexto] = useState("");
   const [prioridade, setPrioridade] = useState("media");
 
-  // CORREÇÃO: Adicionado estado de usuários
+  // Estado dos usuários
   const [usuarios, setUsuarios] = useState([]);
   const [usuarioId, setUsuarioId] = useState("");
 
@@ -21,7 +21,6 @@ function Modal({
   const [exibirFormNovoProjeto, setExibirFormNovoProjeto] = useState(false);
   const [nomeNovoProjeto, setNomeNovoProjeto] = useState("");
 
-  // CORREÇÃO: Carregar usuários para o Select de Usuário
   useEffect(() => {
     if (aberto) {
       const carregarUsuarios = async () => {
@@ -51,7 +50,6 @@ function Modal({
     if (tarefaInicial) {
       setTexto(tarefaInicial.texto || "");
       setPrioridade(tarefaInicial.prioridade || "media");
-      // CORREÇÃO: Restaurado o carregamento de usuarioId
       setUsuarioId(tarefaInicial.usuario_id || tarefaInicial.usuarioId || "");
       setProjetoId(tarefaInicial.projeto_id || tarefaInicial.projetoId || "");
     }
@@ -71,7 +69,6 @@ function Modal({
     };
   }, [fechar]);
 
-  // CORREÇÃO: Cadastro de projeto com tratamento de evento e envio de 'descricao'
   const handleCriarProjeto = async (e) => {
     if (e) {
       e.preventDefault();
@@ -126,7 +123,7 @@ function Modal({
         </h2>
 
         <form onSubmit={enviar}>
-          {/* Input de texto */}
+          {/* Input de texto da tarefa */}
           <input
             type="text"
             placeholder="Nome da tarefa"
@@ -135,7 +132,7 @@ function Modal({
             required
           />
 
-          {/* CORREÇÃO: Restaurado Select de Usuário */}
+          {/* Select de Usuário */}
           <select
             value={usuarioId}
             onChange={(e) => setUsuarioId(e.target.value)}
@@ -164,7 +161,7 @@ function Modal({
 
           {/* Botão '+' e Select de Projetos */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', itemsCenter: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.85rem', color: '#a0a0a0' }}>Projeto</span>
               <button
                 type="button"
@@ -190,7 +187,6 @@ function Modal({
               </button>
             </div>
 
-            {/* CORREÇÃO: Formulário de novo projeto que não dispara o envio da tarefa */}
             {exibirFormNovoProjeto && (
               <div style={{ display: 'flex', gap: '6px' }}>
                 <input
@@ -224,6 +220,7 @@ function Modal({
               </div>
             )}
 
+            {/* CORREÇÃO: Select de Projetos exibindo apenas placeholder padronizado e a lista cadastrada (Sem o texto "Projetos para fazer logo") */}
             {projetos.length === 0 ? (
               <select disabled style={{ opacity: 0.7 }}>
                 <option value="">Não há projetos cadastrados.</option>
