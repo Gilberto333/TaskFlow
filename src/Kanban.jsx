@@ -22,7 +22,11 @@ const mapColunaParaStatus = (coluna) => {
 function Kanban() {
   const [tarefas, setTarefas] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
+
+  // Lista de utilizadores para o Select e resolução do Responsável
   const [usuarios, setUsuarios] = useState([])
+
+  // Lista de projetos
   const [projetos, setProjetos] = useState([])
   const [exibirFormNovoProjeto, setExibirFormNovoProjeto] = useState(false)
   const [nomeNovoProjeto, setNomeNovoProjeto] = useState('')
@@ -38,46 +42,51 @@ function Kanban() {
     status: 'A fazer'
   })
 
-  // 1. Buscar Tarefas
+  // Buscar tarefas da API
   useEffect(() => {
     const buscarTarefas = async () => {
       try {
         const response = await api.get('/tarefas')
-        const tarefasMapeadas = (response.data || []).map(t => ({
+        const tarefasMapeadas = response.data.map(t => ({
           ...t,
           status: mapColunaParaStatus(t.coluna)
         }))
         setTarefas(tarefasMapeadas)
       } catch (error) {
-        console.error('Erro ao buscar tarefas:', error)
+        console.error('Erro ao buscar tarefas da API:', error)
       }
     }
+
     buscarTarefas()
   }, [])
 
-  // 2. Buscar Usuários
+  // Buscar utilizadores da API
   useEffect(() => {
     const buscarUsuarios = async () => {
       try {
         const response = await api.get('/usuarios')
         setUsuarios(response.data || [])
       } catch (error) {
-        console.error('Erro ao buscar usuários:', error)
+        console.error('Erro ao buscar utilizadores:', error)
       }
     }
+
     buscarUsuarios()
   }, [])
 
-  // 3. Buscar Projetos (Filtrando "Projetos para fazer logo" do backend)
+  // CORREÇÃO: Buscar projetos e filtrar "Projetos para fazer logo" vindo do Backend/BD
   const buscarProjetos = async () => {
     try {
       const response = await api.get('/projetos')
-      const lista = response.data || []
-      const filtrados = lista.filter(p => {
+      const listaProjetos = response.data || []
+      
+      // CORREÇÃO: Remoção estrita do projeto padrão retornado da API
+      const projetosFiltrados = listaProjetos.filter(p => {
         const nome = (p.nome || p.descricao || p.texto || '').trim().toLowerCase()
         return nome !== 'projetos para fazer logo'
       })
-      setProjetos(filtrados)
+
+      setProjetos(projetosFiltrados)
     } catch (error) {
       console.error('Erro ao buscar projetos:', error)
     }
@@ -87,13 +96,27 @@ function Kanban() {
     buscarProjetos()
   }, [])
 
+  useEffect(() => {
+    if (!modalAberto) return
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setModalAberto(false)
+        setExibirFormNovoProjeto(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [modalAberto])
+
   const abrirNovaTarefa = (status) => {
     setTarefaAtual({
       id: null,
       texto: '',
-      usuario_id: usuarios.length > 0 ? String(usuarios[0].id || usuarios[0]._id || '') : '',
+      usuario_id: usuarios.length > 0 ? (usuarios[0].id || usuarios[0]._id || '') : '',
       prioridade: 'media',
-      projeto_id: projetos.length > 0 ? String(projetos[0].id || projetos[0]._id || '') : '',
+      projeto_id: projetos.length > 0 ? (projetos[0].id || projetos[0]._id || '') : '',
       status
     })
     setExibirFormNovoProjeto(false)
@@ -101,28 +124,29 @@ function Kanban() {
     setModalAberto(true)
   }
 
+  // CORREÇÃO: Recuperação abrangente das chaves de projeto_id e usuario_id
   const editarTarefa = (tarefa) => {
-    const projId = tarefa.projeto_id ?? tarefa.projetoId ?? (typeof tarefa.projeto === 'object' ? (tarefa.projeto?.id || tarefa.projeto?._id) : tarefa.projeto) ?? ''
-    const usrId = tarefa.usuario_id ?? tarefa.usuarioId ?? (typeof tarefa.usuario === 'object' ? (tarefa.usuario?.id || tarefa.usuario?._id) : tarefa.usuario) ?? ''
+    const projId = tarefa.projeto_id || tarefa.projetoId || (typeof tarefa.projeto === 'object' ? (tarefa.projeto?.id || tarefa.projeto?._id) : tarefa.projeto) || ''
+    const usrId = tarefa.usuario_id || tarefa.usuarioId || (typeof tarefa.usuario === 'object' ? (tarefa.usuario?.id || tarefa.usuario?._id) : tarefa.usuario) || ''
 
     setTarefaAtual({
       ...tarefa,
-      usuario_id: String(usrId),
-      projeto_id: String(projId)
+      usuario_id: usrId,
+      projeto_id: projId
     })
     setExibirFormNovoProjeto(false)
     setNomeNovoProjeto('')
     setModalAberto(true)
   }
 
+  // CORREÇÃO: Payload completo enviando id como Número e String para máxima compatibilidade com a API
   const salvarTarefa = async (novaTarefa) => {
     const rawProjId = novaTarefa.projeto_id
-    const parsedProjId = (!isNaN(Number(rawProjId)) && rawProjId !== '') ? Number(rawProjId) : rawProjId
+    const parsedProjId = !isNaN(Number(rawProjId)) && rawProjId !== '' ? Number(rawProjId) : rawProjId
 
     const rawUsrId = novaTarefa.usuario_id
-    const parsedUsrId = (!isNaN(Number(rawUsrId)) && rawUsrId !== '') ? Number(rawUsrId) : rawUsrId
+    const parsedUsrId = !isNaN(Number(rawUsrId)) && rawUsrId !== '' ? Number(rawUsrId) : rawUsrId
 
-    // Envia todas as chaves e tipos para aceitar qualquer contrato da API
     const payload = {
       texto: novaTarefa.texto,
       descricao: novaTarefa.texto,
@@ -143,40 +167,61 @@ function Kanban() {
           ...response.data,
           status: mapColunaParaStatus(response.data.coluna)
         }
-        setTarefas(prev => prev.map(t => (t.id === novaTarefa.id ? tarefaAtualizada : t)))
+        setTarefas(prev =>
+          prev.map(t => (t.id === novaTarefa.id ? tarefaAtualizada : t))
+        )
       } else {
         const response = await api.post('/tarefas', payload)
-        const novaMapeada = {
+        const novaTarefaMapeada = {
           ...response.data,
           status: mapColunaParaStatus(response.data.coluna)
         }
-        setTarefas(prev => [...prev, novaMapeada])
+        setTarefas(prev => [...prev, novaTarefaMapeada])
       }
+
       setModalAberto(false)
     } catch (error) {
       console.error('Erro ao salvar tarefa:', error)
-      alert(error.response?.data?.erro || 'Erro ao salvar a tarefa na API.')
+      const mensagemErro = error.response?.data?.erro || error.response?.data?.mensagem || 'Erro ao salvar a tarefa na API.'
+      alert(mensagemErro)
     }
   }
 
-  const handleCriarProjeto = async () => {
-    if (!nomeNovoProjeto.trim()) return
+  // CORREÇÃO: Cadastro de projeto com atualização do estado e seleção imediata
+  const handleCriarProjeto = async (e) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    if (!nomeNovoProjeto.trim()) {
+      alert('Por favor, informe o nome do projeto.')
+      return
+    }
+
     try {
       const response = await api.post('/projetos', {
         nome: nomeNovoProjeto.trim(),
         descricao: nomeNovoProjeto.trim(),
         texto: nomeNovoProjeto.trim()
       })
-      const novoProj = response.data
-      const novoId = String(novoProj.id || novoProj._id || '')
 
-      setProjetos(prev => [...prev, novoProj])
-      setTarefaAtual(prev => ({ ...prev, projeto_id: novoId }))
+      const novoProjeto = response.data
+      const novoId = novoProjeto.id || novoProjeto._id || novoProjeto.novoId
+
+      setProjetos(prev => [...prev, novoProjeto])
+
+      setTarefaAtual(prev => ({
+        ...prev,
+        projeto_id: novoId || prev.projeto_id
+      }))
+
       setNomeNovoProjeto('')
       setExibirFormNovoProjeto(false)
     } catch (error) {
-      console.error('Erro ao criar projeto:', error)
-      alert('Erro ao criar projeto.')
+      console.error('Erro ao cadastrar projeto:', error)
+      const mensagemErro = error.response?.data?.erro || error.response?.data?.mensagem || 'Erro ao cadastrar projeto.'
+      alert(mensagemErro)
     }
   }
 
@@ -200,6 +245,7 @@ function Kanban() {
         ...tarefaParaMover,
         coluna: mapStatusParaColuna(novoStatus)
       }
+
       try {
         const response = await api.put(`/tarefas/${id}`, payload)
         const tarefaAtualizada = {
@@ -209,22 +255,28 @@ function Kanban() {
         setTarefas(prev => prev.map(t => (t.id === id ? tarefaAtualizada : t)))
       } catch (error) {
         console.error('Erro ao mover tarefa:', error)
+        const mensagemErro = error.response?.data?.erro || 'Erro ao mover tarefa.'
+        alert(mensagemErro)
       }
     }
   }
 
   const excluirTarefa = async (id) => {
-    if (!window.confirm('Tem certeza que deseja excluir esta tarefa?')) return
+    const confirmar = window.confirm('Tem certeza que deseja excluir esta tarefa?')
+    if (!confirmar) return
+
     try {
       await api.delete(`/tarefas/${id}`)
       setTarefas(prev => prev.filter(t => t.id !== id))
     } catch (error) {
       console.error('Erro ao excluir tarefa:', error)
+      alert('Erro ao excluir a tarefa na API.')
     }
   }
 
-  // CRUZAMENTO DE DADOS: Associa o ID do projeto/usuário com os objetos da lista usando String()
+  // CORREÇÃO: Mapeamento resiliente convertendo IDs em String para evitar falha no cruzamento de dados (Number vs String)
   const tarefasProcessadas = tarefas.map(t => {
+    // Resolução do Responsável
     let nomeUsr = t.usuario_nome || t.usuarioNome
     if (!nomeUsr && typeof t.usuario === 'object' && t.usuario) {
       nomeUsr = t.usuario.nome || t.usuario.name || t.usuario.email
@@ -237,6 +289,7 @@ function Kanban() {
       }
     }
 
+    // Resolução do Projeto
     let nomeProj = t.projeto_nome || t.projetoNome
     if (!nomeProj && typeof t.projeto === 'object' && t.projeto) {
       nomeProj = t.projeto.nome || t.projeto.descricao || t.projeto.texto
@@ -259,13 +312,17 @@ function Kanban() {
   const total = tarefasProcessadas.length
   const pendentes = tarefasProcessadas.filter(t => t.status !== 'Concluído').length
   const concluidos = tarefasProcessadas.filter(t => t.status === 'Concluído').length
+
   const colunas = ['A fazer', 'Em andamento', 'Concluído']
 
   return (
     <div className="container">
       <Header total={total} pendentes={pendentes} concluidos={concluidos} />
 
-      <main className={stylesKanban.board} style={{ marginLeft: token ? '250px' : '0px' }}>
+      <main 
+        className={stylesKanban.board} 
+        style={{ marginLeft: token ? '250px' : '0px' }}
+      >
         {colunas.map((colunaStatus) => (
           <ListaTarefas
             key={colunaStatus}
@@ -293,21 +350,24 @@ function Kanban() {
                 required
               />
 
+              {/* Select de Usuários */}
               <select
                 value={tarefaAtual.usuario_id}
                 onChange={(e) => setTarefaAtual({ ...tarefaAtual, usuario_id: e.target.value })}
               >
                 <option value="">Selecione um usuário</option>
                 {usuarios.map((usr) => {
-                  const idUsr = String(usr.id || usr._id)
+                  const idUsr = usr.id || usr._id
+                  const nomeUsr = usr.nome || usr.name || usr.email
                   return (
                     <option key={idUsr} value={idUsr}>
-                      {usr.nome || usr.name || usr.email}
+                      {nomeUsr}
                     </option>
                   )
                 })}
               </select>
 
+              {/* Select de Prioridade */}
               <select
                 value={tarefaAtual.prioridade}
                 onChange={(e) => setTarefaAtual({ ...tarefaAtual, prioridade: e.target.value })}
@@ -317,12 +377,19 @@ function Kanban() {
                 <option value="alta">Alta</option>
               </select>
 
+              {/* Seção de Projetos */}
               <div className={stylesForm.secaoProjeto}>
                 <div className={stylesForm.headerProjeto}>
-                  <label>Projeto</label>
+                  <label className={stylesForm.labelProjeto}>Projeto</label>
                   <button
                     type="button"
-                    onClick={() => setExibirFormNovoProjeto(!exibirFormNovoProjeto)}
+                    className={stylesForm.btnAdicionarProjeto}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setExibirFormNovoProjeto(!exibirFormNovoProjeto)
+                    }}
+                    title="Cadastrar novo projeto"
                   >
                     +
                   </button>
@@ -335,6 +402,13 @@ function Kanban() {
                       placeholder="Nome do projeto"
                       value={nomeNovoProjeto}
                       onChange={(e) => setNomeNovoProjeto(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          handleCriarProjeto()
+                        }
+                      }}
                     />
                     <button type="button" onClick={handleCriarProjeto}>
                       Salvar
@@ -342,8 +416,9 @@ function Kanban() {
                   </div>
                 )}
 
+                {/* CORREÇÃO: Select dinâmico que exibe apenas aviso quando vazio ou projetos criados */}
                 {projetos.length === 0 ? (
-                  <select disabled>
+                  <select disabled className={stylesForm.selectDisabled}>
                     <option value="">Não há projetos cadastrados.</option>
                   </select>
                 ) : (
@@ -354,10 +429,11 @@ function Kanban() {
                   >
                     <option value="" disabled>Selecione um projeto</option>
                     {projetos.map((proj) => {
-                      const idProj = String(proj.id || proj._id)
+                      const idProj = proj.id || proj._id
+                      const nomeProj = proj.nome || proj.descricao || proj.texto
                       return (
                         <option key={idProj} value={idProj}>
-                          {proj.nome || proj.descricao || proj.texto}
+                          {nomeProj}
                         </option>
                       )
                     })}
