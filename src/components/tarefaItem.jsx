@@ -3,14 +3,12 @@ import styles from './tarefaItem.module.css'
 function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
   const { id, texto, prioridade, status, usuario_nome, projeto_nome, usuario, projeto } = tarefa
 
-  {/* CORREÇÃO: Resolução flexível do Responsável */}
   const nomeResponsavel = usuario_nome || 
     (typeof usuario === 'object' ? (usuario?.nome || usuario?.name || usuario?.email) : usuario) || 
     'Não atribuído'
 
-  {/* CORREÇÃO: Resolução flexível do Projeto */}
   const nomeProjeto = projeto_nome || 
-    (typeof projeto === 'object' ? (projeto?.nome || projeto?.descricao || projeto?.texto) : projeto) || 
+    (typeof usuario === 'object' ? (projeto?.nome || projeto?.descricao || projeto?.texto) : projeto) || 
     'Sem projeto'
 
   return (
@@ -36,7 +34,6 @@ function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
 
       <p className={styles.texto}>{texto}</p>
 
-      {/* CORREÇÃO: Renderização explícita de Responsável e Projeto */}
       <div className={styles.detalhesCard}>
         <div className={styles.infoItem}>
           <strong>Responsável:</strong> {nomeResponsavel}
