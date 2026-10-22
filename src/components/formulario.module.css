@@ -84,12 +84,42 @@
   background-color: #4fa8c7;
 }
 
-/* ===== INÍCIO DA ALTERAÇÃO - SELECT DE PROJETOS ===== */
-.semProjetos {
+/* ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS ===== */
+.secaoProjeto {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
+}
+
+.headerProjetoLabel {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
+}
+
+.headerProjetoLabel label {
+  font-size: 0.9rem;
+  color: #a0a0b0;
+}
+
+.btnNovoProjeto {
+  background-color: transparent;
+  color: #61dafb;
+  border: 1px solid #61dafb;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btnNovoProjeto:hover {
+  background-color: #61dafb;
+  color: #121214;
+}
+
+.semProjetos {
   background-color: #2a2a3e;
   padding: 12px;
   border-radius: 6px;
@@ -99,23 +129,7 @@
 
 .semProjetos p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #a0a0b0;
 }
-
-.btnCadastrarProjeto {
-  background-color: #61dafb;
-  color: #121214;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-weight: bold;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.btnCadastrarProjeto:hover {
-  opacity: 0.9;
-}
-/* ===== FIM DA ALTERAÇÃO - SELECT DE PROJETOS ===== */
+/* ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS ===== */
