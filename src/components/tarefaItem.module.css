@@ -57,7 +57,7 @@
   word-break: break-word;
 }
 
-/* CORREÇÃO: Estilização do bloco de detalhes (Responsável e Projeto) abaixo da descrição */
+/* CORREÇÃO: Estilização dos campos Responsável e Projeto abaixo da descrição */
 .detalhesCard {
   display: flex;
   flex-direction: column;

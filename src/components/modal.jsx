@@ -15,7 +15,7 @@ function Modal({
   const [usuarios, setUsuarios] = useState([]);
   const [usuarioId, setUsuarioId] = useState("");
 
-  // Gerenciamento de projetos
+  // CORREÇÃO: Estado de projetos iniciado puramente vazio
   const [projetos, setProjetos] = useState([]);
   const [projetoId, setProjetoId] = useState("");
   const [exibirFormNovoProjeto, setExibirFormNovoProjeto] = useState(false);
@@ -220,7 +220,7 @@ function Modal({
               </div>
             )}
 
-            {/* CORREÇÃO: Select de Projetos exibindo apenas placeholder padronizado e a lista cadastrada (Sem o texto "Projetos para fazer logo") */}
+            {/* CORREÇÃO: Select sem a opção "Projetos para fazer logo". Exibe apenas a mensagem quando vazio ou as opções cadastradas pelo usuário */}
             {projetos.length === 0 ? (
               <select disabled style={{ opacity: 0.7 }}>
                 <option value="">Não há projetos cadastrados.</option>

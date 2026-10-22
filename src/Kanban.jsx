@@ -23,16 +23,17 @@ function Kanban() {
   const [tarefas, setTarefas] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
 
-  // Lista de usuários para o Select e resolução no card
+  // CORREÇÃO: Lista de usuários iniciada vazia para popular o Select e resolver o Responsável
   const [usuarios, setUsuarios] = useState([])
 
-  // Gerenciamento de projetos
+  // CORREÇÃO: Lista de projetos iniciada puramente vazia (removido qualquer dado estático/padrão)
   const [projetos, setProjetos] = useState([])
   const [exibirFormNovoProjeto, setExibirFormNovoProjeto] = useState(false)
   const [nomeNovoProjeto, setNomeNovoProjeto] = useState('')
 
   const { token } = useAuth()
 
+  // CORREÇÃO: Estado inicial da tarefa com IDs e dados vazios
   const [tarefaAtual, setTarefaAtual] = useState({
     id: null,
     texto: '',
@@ -60,7 +61,7 @@ function Kanban() {
     buscarTarefas()
   }, [])
 
-  // Buscar usuários para o Select
+  // Buscar usuários para o Select de Usuários
   useEffect(() => {
     const buscarUsuarios = async () => {
       try {
@@ -74,7 +75,7 @@ function Kanban() {
     buscarUsuarios()
   }, [])
 
-  // Buscar projetos para o Select
+  // Buscar projetos para o Select de Projetos
   const buscarProjetos = async () => {
     try {
       const response = await api.get('/projetos')
@@ -102,6 +103,7 @@ function Kanban() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [modalAberto])
 
+  // CORREÇÃO: Abertura de nova tarefa atribuindo os seletores iniciais
   const abrirNovaTarefa = (status) => {
     setTarefaAtual({
       id: null,
@@ -116,25 +118,30 @@ function Kanban() {
     setModalAberto(true)
   }
 
+  // CORREÇÃO: Edição da tarefa recuperando corretamente usuario_id e projeto_id
   const editarTarefa = (tarefa) => {
     setTarefaAtual({
       ...tarefa,
-      usuario_id: tarefa.usuario_id || tarefa.usuarioId || (tarefa.usuario?.id) || '',
-      projeto_id: tarefa.projeto_id || tarefa.projetoId || (tarefa.projeto?.id) || ''
+      usuario_id: tarefa.usuario_id || tarefa.usuarioId || (typeof tarefa.usuario === 'object' ? tarefa.usuario?.id : tarefa.usuario) || '',
+      projeto_id: tarefa.projeto_id || tarefa.projetoId || (typeof tarefa.projeto === 'object' ? tarefa.projeto?.id : tarefa.projeto) || ''
     })
     setExibirFormNovoProjeto(false)
     setNomeNovoProjeto('')
     setModalAberto(true)
   }
 
+  // CORREÇÃO: Payload de salvar enviando variações de chave para garantir compatibilidade com o backend
   const salvarTarefa = async (novaTarefa) => {
     const payload = {
       texto: novaTarefa.texto,
       descricao: novaTarefa.texto,
       usuario_id: novaTarefa.usuario_id,
+      usuarioId: novaTarefa.usuario_id,
       usuario: novaTarefa.usuario_id,
       prioridade: novaTarefa.prioridade,
       projeto_id: novaTarefa.projeto_id,
+      projetoId: novaTarefa.projeto_id,
+      projeto: novaTarefa.projeto_id,
       coluna: mapStatusParaColuna(novaTarefa.status)
     }
 
@@ -165,6 +172,7 @@ function Kanban() {
     }
   }
 
+  // CORREÇÃO: Cadastro de projeto isolado que adiciona à lista e seleciona o ID criado
   const handleCriarProjeto = async (e) => {
     if (e) {
       e.preventDefault()
@@ -251,8 +259,9 @@ function Kanban() {
     }
   }
 
-  // CORREÇÃO: Enriquecimento das tarefas com nome do responsável e do projeto para exibição nos cards
+  // CORREÇÃO: Cruzamento de dados entre Tarefas e Projetos/Usuários para garantir que Responsável e Projeto sejam exibidos nos cards
   const tarefasProcessadas = tarefas.map(t => {
+    // Resolução do Nome do Responsável
     let nomeUsr = t.usuario_nome || t.usuarioNome
     if (!nomeUsr && typeof t.usuario === 'object' && t.usuario) {
       nomeUsr = t.usuario.nome || t.usuario.name || t.usuario.email
@@ -263,6 +272,7 @@ function Kanban() {
       if (u) nomeUsr = u.nome || u.name || u.email
     }
 
+    // Resolução do Nome do Projeto
     let nomeProj = t.projeto_nome || t.projetoNome
     if (!nomeProj && typeof t.projeto === 'object' && t.projeto) {
       nomeProj = t.projeto.nome || t.projeto.descricao || t.projeto.texto
@@ -387,7 +397,7 @@ function Kanban() {
                   </div>
                 )}
 
-                {/* CORREÇÃO: Select de Projetos com placeholder limpo "Selecione um projeto" (Sem o texto "Projetos para fazer logo") */}
+                {/* CORREÇÃO: Select sem a opção "Projetos para fazer logo". Exibe apenas a mensagem quando vazio ou as opções cadastradas */}
                 {projetos.length === 0 ? (
                   <select disabled className={stylesForm.selectDisabled}>
                     <option value="">Não há projetos cadastrados.</option>
