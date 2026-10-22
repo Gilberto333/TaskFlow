@@ -1,11 +1,7 @@
 import styles from './tarefaItem.module.css'
 
 function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
-  
-  const { id, texto, prioridade, status, projeto, projeto_nome, projetoNome } = tarefa
-
-
-  const nomeProjetoExibicao = typeof projeto === 'object' ? projeto?.nome : (projeto || projeto_nome || projetoNome)
+  const { id, texto, prioridade, status, cidade, usuarioNome } = tarefa
 
   return (
     <div
@@ -28,12 +24,20 @@ function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
         )}
       </div>
 
+     
       <p className={styles.texto}>{texto}</p>
 
-      
-      {nomeProjetoExibicao && (
+    
+      {usuarioNome && (
+        <small className={styles.usuario}>
+           {usuarioNome}
+        </small>
+      )}
+
+   
+      {cidade && (
         <small className={styles.cidade}>
-           {nomeProjetoExibicao}
+          📍 {cidade}
         </small>
       )}
 

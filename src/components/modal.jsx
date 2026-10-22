@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-
-import api from "../api";
+import axios from "axios";
 import styles from "./modal.module.css";
 
 function Modal({
@@ -9,75 +8,67 @@ function Modal({
   salvar,
   tarefaInicial
 }) {
+
   const [texto, setTexto] = useState("");
   const [prioridade, setPrioridade] = useState("media");
-
-  
-  const [projetos, setProjetos] = useState([]);
-  const [projetoId, setProjetoId] = useState("");
-  const [exibirFormNovoProjeto, setExibirFormNovoProjeto] = useState(false);
-  const [nomeNovoProjeto, setNomeNovoProjeto] = useState("");
-
- 
-  const carregarProjetos = async () => {
-    try {
-      const response = await api.get('/projetos');
-      setProjetos(response.data || []);
-    } catch (error) {
-      console.error("Erro ao carregar projetos:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (aberto) {
-      carregarProjetos();
-    }
-  }, [aberto]);
+  const [cep, setCep] = useState("");
+  const [cidade, setCidade] = useState("");
 
   useEffect(() => {
     if (tarefaInicial) {
-      setTexto(tarefaInicial.texto || "");
-      setPrioridade(tarefaInicial.prioridade || "media");
-    
-      setProjetoId(tarefaInicial.projeto_id || tarefaInicial.projetoId || "");
+      setTexto(tarefaInicial.texto);
+      setPrioridade(tarefaInicial.prioridade);
+      setCep(tarefaInicial.cep || "");
+      setCidade(tarefaInicial.cidade || "");
     }
   }, [tarefaInicial]);
 
   useEffect(() => {
+
     const fecharEsc = (e) => {
       if (e.key === "Escape") {
         fechar();
-        setExibirFormNovoProjeto(false);
       }
     };
 
     window.addEventListener("keydown", fecharEsc);
+
     return () => {
       window.removeEventListener("keydown", fecharEsc);
     };
+
   }, [fechar]);
 
- 
-  const handleCriarProjeto = async () => {
-    if (!nomeNovoProjeto.trim()) return;
+  const buscarCidade = async (valorCep) => {
+
+    const cepLimpo = valorCep.replace(/\D/g, "");
+
+    if (cepLimpo.length !== 8) {
+      setCidade("");
+      return;
+    }
 
     try {
-      const response = await api.post('/projetos', {
-        nome: nomeNovoProjeto.trim(),
-        texto: nomeNovoProjeto.trim()
-      });
 
-      const novoProj = response.data;
-      const novoId = novoProj.id || novoProj._id || novoProj.novoId;
+      const response = await axios.get(
+        `https://viacep.com.br/ws/${cepLimpo}/json/`
+      );
 
-      setProjetos((prev) => [...prev, novoProj]);
-      setProjetoId(novoId || "");
-      setNomeNovoProjeto("");
-      setExibirFormNovoProjeto(false);
-    } catch (error) {
-      console.error("Erro ao cadastrar projeto:", error);
-      alert("Erro ao cadastrar projeto.");
+      if (!response.data.erro) {
+        setCidade(
+          `${response.data.localidade} - ${response.data.uf}`
+        );
+      }
+
+    } catch {
+      setCidade("");
     }
+
+  };
+
+  const alterarCep = (e) => {
+    setCep(e.target.value);
+    buscarCidade(e.target.value);
   };
 
   const enviar = (e) => {
@@ -87,20 +78,31 @@ function Modal({
       ...tarefaInicial,
       texto,
       prioridade,
-      projeto_id: projetoId
+      cep,
+      cidade
     });
   };
 
   if (!aberto) return null;
 
   return (
-    <div className={styles.overlay} onClick={fechar}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+
+    <div
+      className={styles.overlay}
+      onClick={fechar}
+    >
+
+      <div
+        className={styles.modal}
+        onClick={(e) => e.stopPropagation()}
+      >
+
         <h2>
-          {tarefaInicial?.id ? "Editar tarefa" : "Nova tarefa"}
+          {tarefaInicial.id ? "Editar tarefa" : "Nova tarefa"}
         </h2>
 
         <form onSubmit={enviar}>
+
           <input
             type="text"
             placeholder="Nome da tarefa"
@@ -118,82 +120,26 @@ function Modal({
             <option value="baixa">Baixa</option>
           </select>
 
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', color: '#a0a0a0' }}>Projeto</span>
-              <button
-                type="button"
-                onClick={() => setExibirFormNovoProjeto(!exibirFormNovoProjeto)}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  border: 'none',
-                  backgroundColor: '#61dafb',
-                  color: '#12121a',
-                  fontWeight: 'bold',
-                  fontSize: '1.1rem',
-                  cursor: 'pointer'
-                }}
-                title="Cadastrar projeto"
-              >
-                +
-              </button>
-            </div>
+          <input
+            type="text"
+            placeholder="CEP"
+            value={cep}
+            maxLength={8}
+            onChange={alterarCep}
+          />
 
-            {exibirFormNovoProjeto && (
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <input
-                  type="text"
-                  placeholder="Nome do projeto"
-                  value={nomeNovoProjeto}
-                  onChange={(e) => setNomeNovoProjeto(e.target.value)}
-                  style={{ flex: 1 }}
-                />
-                <button
-                  type="button"
-                  onClick={handleCriarProjeto}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#61dafb',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Salvar
-                </button>
-              </div>
-            )}
-
-            {projetos.length === 0 ? (
-              <select disabled style={{ opacity: 0.7 }}>
-                <option value="">Não há projetos cadastrados.</option>
-              </select>
-            ) : (
-              <select
-                value={projetoId}
-                onChange={(e) => setProjetoId(e.target.value)}
-                required
-              >
-                <option value="" disabled>Selecione um projeto</option>
-                {projetos.map((proj) => {
-                  const idProj = proj.id || proj._id;
-                  const nomeProj = proj.nome || proj.texto;
-                  return (
-                    <option key={idProj} value={idProj}>
-                      {nomeProj}
-                    </option>
-                  );
-                })}
-              </select>
-            )}
-          </div>
+          <input
+            type="text"
+            value={cidade}
+            readOnly
+            placeholder="Cidade"
+          />
 
           <div className={styles.botoes}>
-            <button type="button" onClick={fechar}>
+            <button
+              type="button"
+              onClick={fechar}
+            >
               Cancelar
             </button>
 
@@ -201,10 +147,15 @@ function Modal({
               Salvar
             </button>
           </div>
+
         </form>
+
       </div>
+
     </div>
+
   );
+
 }
 
 export default Modal;
