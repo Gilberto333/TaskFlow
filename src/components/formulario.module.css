@@ -1,135 +1,153 @@
+.formulario {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.formulario input,
+.formulario select {
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  border: 1px solid #3d3d5c;
+  background-color: #1e1e2f;
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+.formulario input[type="text"]:first-child {
+  flex: 2;
+  min-width: 200px;
+}
+
+.formulario input[type="text"]:nth-child(2) {
+  flex: 1;
+  min-width: 120px;
+}
+
+.formulario select {
+  min-width: 100px;
+}
+
+.formulario button {
+  background-color: #61dafb;
+  color: #1e1e2f;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.formulario button:hover {
+  background-color: #4fa8c7;
+}
+
+
+
 .overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.7);
+  inset: 0;
+  background: rgba(10, 10, 20, 0.6);
+  backdrop-filter: blur(3px);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
 }
 
 .modal {
   background-color: #1e1e2f;
-  padding: 2rem;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 400px;
-  color: #ffffff;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  border: 1px solid #3d3d5c;
+  border-radius: 10px;
+  padding: 28px;
+  width: 320px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: modalPop 0.18s ease-out;
 }
 
 .modal h2 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  font-size: 1.5rem;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #ffffff;
 }
 
 .modal form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 14px;
 }
 
 .modal input,
 .modal select {
-  padding: 0.8rem;
+  padding: 0.6rem 0.8rem;
   border-radius: 4px;
-  border: 1px solid #33334d;
-  background-color: #2a2a3e;
+  border: 1px solid #3d3d5c;
+  background-color: #12121e;
   color: #ffffff;
-  font-size: 1rem;
-  outline: none;
+  font-size: 0.9rem;
 }
 
 .modal input:focus,
 .modal select:focus {
+  outline: none;
   border-color: #61dafb;
+}
+
+.cidade {
+  font-size: 0.85rem;
+  color: #61dafb;
+  margin-top: -8px;
 }
 
 .botoes {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .botoes button {
   padding: 0.6rem 1.2rem;
   border-radius: 4px;
-  border: none;
-  cursor: pointer;
   font-weight: bold;
-  font-size: 0.9rem;
-  transition: background-color 0.2s;
-}
-
-.botoes button[type="button"] {
-  background-color: #33334d;
-  color: #ffffff;
-}
-
-.botoes button[type="button"]:hover {
-  background-color: #444466;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
 .botoes button[type="submit"] {
   background-color: #61dafb;
-  color: #121214;
+  color: #1e1e2f;
 }
 
 .botoes button[type="submit"]:hover {
   background-color: #4fa8c7;
 }
 
-/* ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS ===== */
-.secaoProjeto {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.headerProjetoLabel {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.headerProjetoLabel label {
-  font-size: 0.9rem;
-  color: #a0a0b0;
-}
-
-.btnNovoProjeto {
+.botoes button[type="button"] {
   background-color: transparent;
-  color: #61dafb;
-  border: 1px solid #61dafb;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  border: 1px solid #3d3d5c;
+  color: #cfcfe0;
 }
 
-.btnNovoProjeto:hover {
-  background-color: #61dafb;
-  color: #121214;
+.botoes button[type="button"]:hover {
+  background-color: #2a2a40;
 }
 
-.semProjetos {
-  background-color: #2a2a3e;
-  padding: 12px;
-  border-radius: 6px;
-  border: 1px dashed #444466;
-  text-align: center;
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
-
-.semProjetos p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #a0a0b0;
-}
-/* ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS ===== */

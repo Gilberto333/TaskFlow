@@ -1,10 +1,7 @@
 import styles from './tarefaItem.module.css'
 
 function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
-  // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-  // Substituído o campo 'cidade' por 'projetoNome' na desestruturação das propriedades da tarefa
-  const { id, texto, prioridade, status, projetoNome } = tarefa
-  // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
+  const { id, texto, prioridade, status, cidade, usuarioNome } = tarefa
 
   return (
     <div
@@ -27,16 +24,22 @@ function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
         )}
       </div>
 
+     
       <p className={styles.texto}>{texto}</p>
 
-      {/* ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS ===== */}
-      {/* Exibição do nome do projeto vinculado no card de tarefa no lugar da antiga cidade */}
-      {projetoNome && (
-        <small className={styles.cidade}>
-          📁 {projetoNome}
+    
+      {usuarioNome && (
+        <small className={styles.usuario}>
+           {usuarioNome}
         </small>
       )}
-      {/* ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS ===== */}
+
+   
+      {cidade && (
+        <small className={styles.cidade}>
+          📍 {cidade}
+        </small>
+      )}
 
       {onMover && (
         <div className={styles.acoes}>

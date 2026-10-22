@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react'
-// ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-// Removida a importação direta do 'axios' (usado anteriormente para a API externa ViaCEP),
-// mantendo apenas a instância centralizada da API do projeto.
+import axios from 'axios'
 import api from './api'
-// ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
 import { useAuth } from './components/contexts/authcontexts'
 import Header from './components/header'
 import ListaTarefas from './components/ListaTarefas'
@@ -25,156 +22,140 @@ const mapColunaParaStatus = (coluna) => {
 
 function Kanban() {
   const [tarefas, setTarefas] = useState([])
-
-  // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-  // Novos estados para gerenciar os projetos do usuário e o modal de cadastro de novo projeto
-  const [projetos, setProjetos] = useState([])
-  const [modalProjetoAberto, setModalProjetoAberto] = useState(false)
-  const [nomeNovoProjeto, setNomeNovoProjeto] = useState('')
-  // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-
+  const [usuarios, setUsuarios] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
 
-  const { token } = useAuth()
+  const { token, usuario: usuarioLogado } = useAuth()
 
-  // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-  // Modificado o estado inicial de tarefaAtual para remover 'cep' e 'cidade' e incluir 'projetoId'
   const [tarefaAtual, setTarefaAtual] = useState({
     id: null,
     texto: '',
     prioridade: 'media',
-    projetoId: '',
+    usuarioId: '',
+    cep: '',
+    cidade: '',
     status: 'A fazer'
   })
-  // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
 
   useEffect(() => {
-    // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-    // Atualizada a função de busca para carregar simultaneamente tarefas e projetos da API do usuário logado
     const carregarDados = async () => {
       try {
-        const [responseTarefas, responseProjetos] = await Promise.all([
+        const [resTarefas, resUsuarios] = await Promise.all([
           api.get('/tarefas'),
-          api.get('/projetos')
+          api.get('/usuarios')
         ])
 
-        const listaProjetos = responseProjetos.data || []
-        setProjetos(listaProjetos)
+        const listaUsuarios = resUsuarios.data || []
 
-        const tarefasMapeadas = (responseTarefas.data || []).map(t => {
-          const pId = t.projetoId || t.projeto_id
-          const proj = listaProjetos.find(p => String(p.id) === String(pId))
+        const tarefasMapeadas = resTarefas.data.map(t => {
+          const uId = t.usuarioId || t.usuario_id
+          const user = listaUsuarios.find(u => String(u.id) === String(uId))
           return {
             ...t,
-            projetoId: pId || '',
-            projetoNome: proj ? proj.nome : (t.projeto_nome || t.projetoNome || ''),
+            usuarioId: uId || '',
+            usuarioNome: user ? user.nome : (t.usuario_nome || t.usuarioNome || ''),
             status: mapColunaParaStatus(t.coluna)
           }
         })
+        
         setTarefas(tarefasMapeadas)
+        setUsuarios(listaUsuarios)
       } catch (error) {
-        console.error('Erro ao buscar dados da API:', error)
+        console.error('Erro ao carregar dados da API:', error)
       }
     }
 
     carregarDados()
-    // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
   }, [])
 
   useEffect(() => {
-    if (!modalAberto && !modalProjetoAberto) return
+    if (!modalAberto) return
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-        // Garante o fechamento adequado do modal ativo ao pressionar Escape
-        if (modalProjetoAberto) {
-          setModalProjetoAberto(false)
-        } else {
-          setModalAberto(false)
-        }
-        // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
+        setModalAberto(false)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [modalAberto, modalProjetoAberto])
+  }, [modalAberto])
 
-  // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-  // Removida a função consultarCidade por não haver mais integração com CEP
-  // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
+  const consultarCidade = async (cepInput) => {
+    const cepLimpo = cepInput.replace(/\D/g, '')
+    if (cepLimpo.length !== 8) return ''
+
+    try {
+      const response = await axios.get(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      if (response.data.erro) {
+        alert('CEP não encontrado!')
+        return ''
+      }
+      return `${response.data.localidade} - ${response.data.uf}`
+    } catch (error) {
+      console.error('Erro ao consultar CEP:', error)
+      return ''
+    }
+  }
 
   const abrirNovaTarefa = (status) => {
-    // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-    // Define projetoId com o ID do primeiro projeto existente (se houver) ao abrir o formulário
     setTarefaAtual({
       id: null,
       texto: '',
       prioridade: 'media',
-      projetoId: projetos.length > 0 ? projetos[0].id : '',
+      usuarioId: usuarioLogado?.id || (usuarios[0]?.id || ''),
+      cep: '',
+      cidade: '',
       status
     })
-    // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
     setModalAberto(true)
   }
 
   const editarTarefa = (tarefa) => {
-    // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-    // Garante que o projetoId da tarefa existente seja mantido no estado
-    const pId = tarefa.projetoId || tarefa.projeto_id || (projetos.length > 0 ? projetos[0].id : '')
     setTarefaAtual({
       ...tarefa,
-      projetoId: pId
+      usuarioId: tarefa.usuarioId || tarefa.usuario_id || usuarioLogado?.id || ''
     })
-    // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
     setModalAberto(true)
   }
 
   const salvarTarefa = async (novaTarefa) => {
-    // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-    // Validação obrigatória da seleção de um projeto antes de salvar
-    if (!novaTarefa.projetoId) {
-      alert('Selecione ou cadastre um projeto antes de salvar a tarefa.')
-      return
-    }
-
     const payload = {
       texto: novaTarefa.texto,
       prioridade: novaTarefa.prioridade,
-      projetoId: Number(novaTarefa.projetoId),
+      cidade: novaTarefa.cidade,
+      usuarioId: Number(novaTarefa.usuarioId),
       coluna: mapStatusParaColuna(novaTarefa.status)
     }
-    // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
 
     try {
       if (novaTarefa.id) {
         const response = await api.put(`/tarefas/${novaTarefa.id}`, payload)
-        // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-        const pId = response.data.projetoId || response.data.projeto_id || novaTarefa.projetoId
-        const proj = projetos.find(p => String(p.id) === String(pId))
+        const uId = response.data.usuarioId || response.data.usuario_id || novaTarefa.usuarioId
+        const user = usuarios.find(u => String(u.id) === String(uId))
+
         const tarefaAtualizada = {
           ...response.data,
-          projetoId: pId,
-          projetoNome: proj ? proj.nome : '',
+          usuarioId: uId,
+          usuarioNome: user ? user.nome : '',
           status: mapColunaParaStatus(response.data.coluna)
         }
-        // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
+
         setTarefas(prev =>
           prev.map(t => (t.id === novaTarefa.id ? tarefaAtualizada : t))
         )
       } else {
         const response = await api.post('/tarefas', payload)
-        // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-        const pId = response.data.projetoId || response.data.projeto_id || novaTarefa.projetoId
-        const proj = projetos.find(p => String(p.id) === String(pId))
+        const uId = response.data.usuarioId || response.data.usuario_id || novaTarefa.usuarioId
+        const user = usuarios.find(u => String(u.id) === String(uId))
+
         const novaTarefaMapeada = {
           ...response.data,
-          projetoId: pId,
-          projetoNome: proj ? proj.nome : '',
+          usuarioId: uId,
+          usuarioNome: user ? user.nome : '',
           status: mapColunaParaStatus(response.data.coluna)
         }
-        // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
+
         setTarefas(prev => [...prev, novaTarefaMapeada])
       }
 
@@ -186,35 +167,27 @@ function Kanban() {
     }
   }
 
-  // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-  // Removida a função handleCepChange
-  // Criada a função para salvar um novo projeto via API e selecionar automaticamente o projeto criado
-  const handleSalvarNovoProjeto = async (e) => {
-    e.preventDefault()
-    if (!nomeNovoProjeto.trim()) {
-      alert('Por favor, informe o nome do projeto.')
-      return
-    }
+  const handleCepChange = async (e) => {
+    const valor = e.target.value
+    setTarefaAtual(prev => ({ ...prev, cep: valor, cidade: '' }))
 
-    try {
-      const response = await api.post('/projetos', { nome: nomeNovoProjeto.trim() })
-      const novoProjeto = response.data
-
-      setProjetos(prev => [...prev, novoProjeto])
-      setTarefaAtual(prev => ({ ...prev, projetoId: novoProjeto.id }))
-      setNomeNovoProjeto('')
-      setModalProjetoAberto(false)
-    } catch (error) {
-      console.error('Erro ao cadastrar projeto:', error)
-      const mensagemErro = error.response?.data?.erro || 'Erro ao criar projeto na API.'
-      alert(mensagemErro)
+    const cepLimpo = valor.replace(/\D/g, '')
+    if (cepLimpo.length === 8) {
+      const cidadeEncontrada = await consultarCidade(valor)
+      setTarefaAtual(prev => ({ ...prev, cidade: cidadeEncontrada }))
     }
   }
-  // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
 
   const handleSubmitModal = (e) => {
     e.preventDefault()
-    if (!tarefaAtual.texto.trim()) return
+    if (!tarefaAtual.texto.trim()) {
+      alert('Por favor, informe o texto da tarefa.')
+      return
+    }
+    if (!tarefaAtual.usuarioId) {
+      alert('Por favor, selecione um usuário responsável.')
+      return
+    }
     salvarTarefa(tarefaAtual)
   }
 
@@ -229,27 +202,22 @@ function Kanban() {
     if (novoIndex >= 0 && novoIndex < ordem.length) {
       const novoStatus = ordem[novoIndex]
       const payload = {
-        texto: tarefaParaMover.texto,
-        prioridade: tarefaParaMover.prioridade,
-        // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-        // Adicionado o projetoId obrigatório no payload de movimentação de colunas
-        projetoId: Number(tarefaParaMover.projetoId || tarefaParaMover.projeto_id),
-        // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
+        ...tarefaParaMover,
+        usuarioId: Number(tarefaParaMover.usuarioId || tarefaParaMover.usuario_id),
         coluna: mapStatusParaColuna(novoStatus)
       }
 
       try {
         const response = await api.put(`/tarefas/${id}`, payload)
-        // ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
-        const pId = response.data.projetoId || response.data.projeto_id || tarefaParaMover.projetoId
-        const proj = projetos.find(p => String(p.id) === String(pId))
+        const uId = response.data.usuarioId || response.data.usuario_id || tarefaParaMover.usuarioId
+        const user = usuarios.find(u => String(u.id) === String(uId))
+
         const tarefaAtualizada = {
           ...response.data,
-          projetoId: pId,
-          projetoNome: proj ? proj.nome : tarefaParaMover.projetoNome,
+          usuarioId: uId,
+          usuarioNome: user ? user.nome : tarefaParaMover.usuarioNome,
           status: mapColunaParaStatus(response.data.coluna)
         }
-        // ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS =====
         setTarefas(prev => prev.map(t => (t.id === id ? tarefaAtualizada : t)))
       } catch (error) {
         console.error('Erro ao mover tarefa:', error)
@@ -299,7 +267,6 @@ function Kanban() {
         ))}
       </main>
 
-      {/* MODAL DE TAREFA */}
       {modalAberto && (
         <div className={stylesForm.overlay} onClick={() => setModalAberto(false)}>
           <div className={stylesForm.modal} onClick={(e) => e.stopPropagation()}>
@@ -323,79 +290,41 @@ function Kanban() {
                 <option value="alta">Alta</option>
               </select>
 
-              {/* ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS ===== */}
-              {/* Removidos os campos de CEP e Cidade. Exibição do Select de Projetos e botão 'Novo Projeto' disponível sempre */}
-              <div className={stylesForm.secaoProjeto}>
-                <div className={stylesForm.headerProjetoLabel}>
-                  <label>Projeto *</label>
-                  <button
-                    type="button"
-                    className={stylesForm.btnNovoProjeto}
-                    onClick={() => setModalProjetoAberto(true)}
-                  >
-                    + Novo Projeto
-                  </button>
-                </div>
+              <select
+                value={tarefaAtual.usuarioId}
+                onChange={(e) => setTarefaAtual({ ...tarefaAtual, usuarioId: e.target.value })}
+                required
+              >
+                <option value="">Selecione o Usuário Responsável</option>
+                {usuarios.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nome} ({u.email})
+                  </option>
+                ))}
+              </select>
 
-                {projetos.length > 0 ? (
-                  <select
-                    value={tarefaAtual.projetoId}
-                    onChange={(e) => setTarefaAtual({ ...tarefaAtual, projetoId: e.target.value })}
-                    required
-                  >
-                    <option value="" disabled>Selecione um projeto</option>
-                    {projetos.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        📁 {p.nome}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <div className={stylesForm.semProjetos}>
-                    <p>Você ainda não possui projetos cadastrados.</p>
-                  </div>
-                )}
-              </div>
-              {/* ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS ===== */}
+              <input
+                type="text"
+                placeholder="CEP"
+                value={tarefaAtual.cep}
+                onChange={handleCepChange}
+                maxLength={9}
+              />
+              
+              {tarefaAtual.cidade && (
+                <p className={stylesForm.cidade}>📍 {tarefaAtual.cidade}</p>
+              )}
 
               <div className={stylesForm.botoes}>
                 <button type="button" onClick={() => setModalAberto(false)}>
                   Cancelar
                 </button>
-                <button type="submit">Enviar</button>
+                <button type="submit">Salvar</button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      {/* ===== INÍCIO DA ALTERAÇÃO - SISTEMA DE PROJETOS ===== */}
-      {/* Modal para cadastro de novo projeto */}
-      {modalProjetoAberto && (
-        <div className={stylesForm.overlay} onClick={() => setModalProjetoAberto(false)}>
-          <div className={stylesForm.modal} onClick={(e) => e.stopPropagation()}>
-            <h2>Novo Projeto</h2>
-            <form onSubmit={handleSalvarNovoProjeto}>
-              <input
-                type="text"
-                placeholder="Nome do projeto"
-                value={nomeNovoProjeto}
-                onChange={(e) => setNomeNovoProjeto(e.target.value)}
-                autoFocus
-                required
-              />
-
-              <div className={stylesForm.botoes}>
-                <button type="button" onClick={() => setModalProjetoAberto(false)}>
-                  Cancelar
-                </button>
-                <button type="submit">Salvar Projeto</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* ===== FIM DA ALTERAÇÃO - SISTEMA DE PROJETOS ===== */}
     </div>
   )
 }
