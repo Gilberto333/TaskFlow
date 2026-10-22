@@ -1,7 +1,10 @@
 import styles from './tarefaItem.module.css'
 
 function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
-  const { id, texto, prioridade, status, cidade, usuarioNome } = tarefa
+  // CORREÇÃO: Mantidos os acessos para o projeto vinculado e exibições
+  const { id, texto, prioridade, status, projeto, projeto_nome, projetoNome } = tarefa
+
+  const nomeProjetoExibicao = typeof projeto === 'object' ? projeto?.nome : (projeto || projeto_nome || projetoNome)
 
   return (
     <div
@@ -24,20 +27,12 @@ function TarefaItem({ tarefa, onMover, onExcluir, onEditar }) {
         )}
       </div>
 
-     
       <p className={styles.texto}>{texto}</p>
 
-    
-      {usuarioNome && (
-        <small className={styles.usuario}>
-           {usuarioNome}
-        </small>
-      )}
-
-   
-      {cidade && (
+      {/* Exibição do Projeto vinculado à tarefa */}
+      {nomeProjetoExibicao && (
         <small className={styles.cidade}>
-          📍 {cidade}
+          📁 {nomeProjetoExibicao}
         </small>
       )}
 

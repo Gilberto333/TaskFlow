@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import api from './api'
 import { useAuth } from './components/contexts/authcontexts'
 import Header from './components/header'
@@ -22,50 +21,72 @@ const mapColunaParaStatus = (coluna) => {
 
 function Kanban() {
   const [tarefas, setTarefas] = useState([])
-  const [usuarios, setUsuarios] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
 
-  const { token, usuario: usuarioLogado } = useAuth()
+  // CORREÇÃO: Adicionado estado para armazenar a lista de usuários do Select de Usuários
+  const [usuarios, setUsuarios] = useState([])
 
+  // Gerenciamento de projetos
+  const [projetos, setProjetos] = useState([])
+  const [exibirFormNovoProjeto, setExibirFormNovoProjeto] = useState(false)
+  const [nomeNovoProjeto, setNomeNovoProjeto] = useState('')
+
+  const { token } = useAuth()
+
+  // CORREÇÃO: Restaurado o campo usuario_id e mantido o campo projeto_id em tarefaAtual
   const [tarefaAtual, setTarefaAtual] = useState({
     id: null,
     texto: '',
+    usuario_id: '',
     prioridade: 'media',
-    usuarioId: '',
-    cep: '',
-    cidade: '',
+    projeto_id: '',
     status: 'A fazer'
   })
 
+  // Buscar tarefas ao carregar
   useEffect(() => {
-    const carregarDados = async () => {
+    const buscarTarefas = async () => {
       try {
-        const [resTarefas, resUsuarios] = await Promise.all([
-          api.get('/tarefas'),
-          api.get('/usuarios')
-        ])
-
-        const listaUsuarios = resUsuarios.data || []
-
-        const tarefasMapeadas = resTarefas.data.map(t => {
-          const uId = t.usuarioId || t.usuario_id
-          const user = listaUsuarios.find(u => String(u.id) === String(uId))
-          return {
-            ...t,
-            usuarioId: uId || '',
-            usuarioNome: user ? user.nome : (t.usuario_nome || t.usuarioNome || ''),
-            status: mapColunaParaStatus(t.coluna)
-          }
-        })
-        
+        const response = await api.get('/tarefas')
+        const tarefasMapeadas = response.data.map(t => ({
+          ...t,
+          status: mapColunaParaStatus(t.coluna)
+        }))
         setTarefas(tarefasMapeadas)
-        setUsuarios(listaUsuarios)
       } catch (error) {
-        console.error('Erro ao carregar dados da API:', error)
+        console.error('Erro ao buscar tarefas da API:', error)
       }
     }
 
-    carregarDados()
+    buscarTarefas()
+  }, [])
+
+  // CORREÇÃO: Restaurada busca de usuários cadastrados na API para o Select de Usuário
+  useEffect(() => {
+    const buscarUsuarios = async () => {
+      try {
+        const response = await api.get('/usuarios')
+        setUsuarios(response.data || [])
+      } catch (error) {
+        console.error('Erro ao buscar usuários:', error)
+      }
+    }
+
+    buscarUsuarios()
+  }, [])
+
+  // Buscar projetos cadastrados
+  const buscarProjetos = async () => {
+    try {
+      const response = await api.get('/projetos')
+      setProjetos(response.data || [])
+    } catch (error) {
+      console.error('Erro ao buscar projetos:', error)
+    }
+  }
+
+  useEffect(() => {
+    buscarProjetos()
   }, [])
 
   useEffect(() => {
@@ -74,6 +95,7 @@ function Kanban() {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         setModalAberto(false)
+        setExibirFormNovoProjeto(false)
       }
     }
 
@@ -81,113 +103,116 @@ function Kanban() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [modalAberto])
 
-  const consultarCidade = async (cepInput) => {
-    const cepLimpo = cepInput.replace(/\D/g, '')
-    if (cepLimpo.length !== 8) return ''
-
-    try {
-      const response = await axios.get(`https://viacep.com.br/ws/${cepLimpo}/json/`)
-      if (response.data.erro) {
-        alert('CEP não encontrado!')
-        return ''
-      }
-      return `${response.data.localidade} - ${response.data.uf}`
-    } catch (error) {
-      console.error('Erro ao consultar CEP:', error)
-      return ''
-    }
-  }
-
+  // CORREÇÃO: Abertura de nova tarefa contendo estado inicial de Usuário e Projeto
   const abrirNovaTarefa = (status) => {
     setTarefaAtual({
       id: null,
       texto: '',
+      usuario_id: usuarios.length > 0 ? (usuarios[0].id || usuarios[0]._id || '') : '',
       prioridade: 'media',
-      usuarioId: usuarioLogado?.id || (usuarios[0]?.id || ''),
-      cep: '',
-      cidade: '',
+      projeto_id: projetos.length > 0 ? (projetos[0].id || projetos[0]._id || '') : '',
       status
     })
+    setExibirFormNovoProjeto(false)
+    setNomeNovoProjeto('')
     setModalAberto(true)
   }
 
+  // CORREÇÃO: Edição de tarefa preservando os vínculos de usuário e projeto
   const editarTarefa = (tarefa) => {
     setTarefaAtual({
       ...tarefa,
-      usuarioId: tarefa.usuarioId || tarefa.usuario_id || usuarioLogado?.id || ''
+      usuario_id: tarefa.usuario_id || tarefa.usuarioId || (tarefa.usuario?.id) || '',
+      projeto_id: tarefa.projeto_id || tarefa.projetoId || (tarefa.projeto?.id) || ''
     })
+    setExibirFormNovoProjeto(false)
+    setNomeNovoProjeto('')
     setModalAberto(true)
   }
 
+  // CORREÇÃO: Payload de salvar tarefa enviando texto, descricao, usuario_id, prioridade, projeto_id e coluna
   const salvarTarefa = async (novaTarefa) => {
     const payload = {
       texto: novaTarefa.texto,
+      descricao: novaTarefa.texto,
+      usuario_id: novaTarefa.usuario_id,
+      usuario: novaTarefa.usuario_id,
       prioridade: novaTarefa.prioridade,
-      cidade: novaTarefa.cidade,
-      usuarioId: Number(novaTarefa.usuarioId),
+      projeto_id: novaTarefa.projeto_id,
       coluna: mapStatusParaColuna(novaTarefa.status)
     }
 
     try {
       if (novaTarefa.id) {
         const response = await api.put(`/tarefas/${novaTarefa.id}`, payload)
-        const uId = response.data.usuarioId || response.data.usuario_id || novaTarefa.usuarioId
-        const user = usuarios.find(u => String(u.id) === String(uId))
-
         const tarefaAtualizada = {
           ...response.data,
-          usuarioId: uId,
-          usuarioNome: user ? user.nome : '',
           status: mapColunaParaStatus(response.data.coluna)
         }
-
         setTarefas(prev =>
           prev.map(t => (t.id === novaTarefa.id ? tarefaAtualizada : t))
         )
       } else {
         const response = await api.post('/tarefas', payload)
-        const uId = response.data.usuarioId || response.data.usuario_id || novaTarefa.usuarioId
-        const user = usuarios.find(u => String(u.id) === String(uId))
-
         const novaTarefaMapeada = {
           ...response.data,
-          usuarioId: uId,
-          usuarioNome: user ? user.nome : '',
           status: mapColunaParaStatus(response.data.coluna)
         }
-
         setTarefas(prev => [...prev, novaTarefaMapeada])
       }
 
       setModalAberto(false)
     } catch (error) {
       console.error('Erro ao salvar tarefa:', error)
-      const mensagemErro = error.response?.data?.erro || 'Erro ao salvar a tarefa na API.'
+      const mensagemErro = error.response?.data?.erro || error.response?.data?.mensagem || 'Erro ao salvar a tarefa na API.'
       alert(mensagemErro)
     }
   }
 
-  const handleCepChange = async (e) => {
-    const valor = e.target.value
-    setTarefaAtual(prev => ({ ...prev, cep: valor, cidade: '' }))
+  // CORREÇÃO: Isolamento de evento em handleCriarProjeto e inclusão do campo 'descricao' no payload do projeto
+  const handleCriarProjeto = async (e) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
 
-    const cepLimpo = valor.replace(/\D/g, '')
-    if (cepLimpo.length === 8) {
-      const cidadeEncontrada = await consultarCidade(valor)
-      setTarefaAtual(prev => ({ ...prev, cidade: cidadeEncontrada }))
+    if (!nomeNovoProjeto.trim()) {
+      alert('Por favor, informe o nome do projeto.')
+      return
+    }
+
+    try {
+      // CORREÇÃO: Enviando nome, descricao e texto para passar por qualquer regra de validação do backend
+      const response = await api.post('/projetos', {
+        nome: nomeNovoProjeto.trim(),
+        descricao: nomeNovoProjeto.trim(),
+        texto: nomeNovoProjeto.trim()
+      })
+
+      const novoProjeto = response.data
+      const novoId = novoProjeto.id || novoProjeto._id || novoProjeto.novoId
+
+      // Atualiza lista de projetos
+      setProjetos(prev => [...prev, novoProjeto])
+
+      // Seleciona o novo projeto imediatamente no Select
+      setTarefaAtual(prev => ({
+        ...prev,
+        projeto_id: novoId || prev.projeto_id
+      }))
+
+      setNomeNovoProjeto('')
+      setExibirFormNovoProjeto(false)
+    } catch (error) {
+      console.error('Erro ao cadastrar projeto:', error)
+      const mensagemErro = error.response?.data?.erro || error.response?.data?.mensagem || 'Erro ao cadastrar projeto.'
+      alert(mensagemErro)
     }
   }
 
   const handleSubmitModal = (e) => {
     e.preventDefault()
-    if (!tarefaAtual.texto.trim()) {
-      alert('Por favor, informe o texto da tarefa.')
-      return
-    }
-    if (!tarefaAtual.usuarioId) {
-      alert('Por favor, selecione um usuário responsável.')
-      return
-    }
+    if (!tarefaAtual.texto.trim()) return
     salvarTarefa(tarefaAtual)
   }
 
@@ -203,19 +228,13 @@ function Kanban() {
       const novoStatus = ordem[novoIndex]
       const payload = {
         ...tarefaParaMover,
-        usuarioId: Number(tarefaParaMover.usuarioId || tarefaParaMover.usuario_id),
         coluna: mapStatusParaColuna(novoStatus)
       }
 
       try {
         const response = await api.put(`/tarefas/${id}`, payload)
-        const uId = response.data.usuarioId || response.data.usuario_id || tarefaParaMover.usuarioId
-        const user = usuarios.find(u => String(u.id) === String(uId))
-
         const tarefaAtualizada = {
           ...response.data,
-          usuarioId: uId,
-          usuarioNome: user ? user.nome : tarefaParaMover.usuarioNome,
           status: mapColunaParaStatus(response.data.coluna)
         }
         setTarefas(prev => prev.map(t => (t.id === id ? tarefaAtualizada : t)))
@@ -272,6 +291,7 @@ function Kanban() {
           <div className={stylesForm.modal} onClick={(e) => e.stopPropagation()}>
             <h2>{tarefaAtual.id ? 'Editar tarefa' : 'Nova tarefa'}</h2>
             <form onSubmit={handleSubmitModal}>
+              {/* Input de texto da tarefa */}
               <input
                 type="text"
                 placeholder="Digite a tarefa"
@@ -281,6 +301,24 @@ function Kanban() {
                 required
               />
 
+              {/* CORREÇÃO: Restaurado o Select de Usuário */}
+              <select
+                value={tarefaAtual.usuario_id}
+                onChange={(e) => setTarefaAtual({ ...tarefaAtual, usuario_id: e.target.value })}
+              >
+                <option value="">Selecione um usuário</option>
+                {usuarios.map((usr) => {
+                  const idUsr = usr.id || usr._id
+                  const nomeUsr = usr.nome || usr.name || usr.email
+                  return (
+                    <option key={idUsr} value={idUsr}>
+                      {nomeUsr}
+                    </option>
+                  )
+                })}
+              </select>
+
+              {/* Select de Prioridade */}
               <select
                 value={tarefaAtual.prioridade}
                 onChange={(e) => setTarefaAtual({ ...tarefaAtual, prioridade: e.target.value })}
@@ -290,36 +328,76 @@ function Kanban() {
                 <option value="alta">Alta</option>
               </select>
 
-              <select
-                value={tarefaAtual.usuarioId}
-                onChange={(e) => setTarefaAtual({ ...tarefaAtual, usuarioId: e.target.value })}
-                required
-              >
-                <option value="">Selecione o Usuário Responsável</option>
-                {usuarios.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.nome} ({u.email})
-                  </option>
-                ))}
-              </select>
+              {/* Gerenciamento de Projetos com botão "+" */}
+              <div className={stylesForm.secaoProjeto}>
+                <div className={stylesForm.headerProjeto}>
+                  <label className={stylesForm.labelProjeto}>Projeto</label>
+                  <button
+                    type="button"
+                    className={stylesForm.btnAdicionarProjeto}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setExibirFormNovoProjeto(!exibirFormNovoProjeto)
+                    }}
+                    title="Cadastrar novo projeto"
+                  >
+                    +
+                  </button>
+                </div>
 
-              <input
-                type="text"
-                placeholder="CEP"
-                value={tarefaAtual.cep}
-                onChange={handleCepChange}
-                maxLength={9}
-              />
-              
-              {tarefaAtual.cidade && (
-                <p className={stylesForm.cidade}>📍 {tarefaAtual.cidade}</p>
-              )}
+                {/* CORREÇÃO: Formulário de novo projeto com botões do tipo "button" para não submeter o formulário pai */}
+                {exibirFormNovoProjeto && (
+                  <div className={stylesForm.formCriarProjeto}>
+                    <input
+                      type="text"
+                      placeholder="Nome do projeto"
+                      value={nomeNovoProjeto}
+                      onChange={(e) => setNomeNovoProjeto(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          handleCriarProjeto()
+                        }
+                      }}
+                    />
+                    <button type="button" onClick={handleCriarProjeto}>
+                      Salvar
+                    </button>
+                  </div>
+                )}
+
+                {/* Select de Projetos */}
+                {projetos.length === 0 ? (
+                  <select disabled className={stylesForm.selectDisabled}>
+                    <option value="">Não há projetos cadastrados.</option>
+                  </select>
+                ) : (
+                  <select
+                    value={tarefaAtual.projeto_id}
+                    onChange={(e) => setTarefaAtual({ ...tarefaAtual, projeto_id: e.target.value })}
+                    required
+                  >
+                    <option value="" disabled>Selecione um projeto</option>
+                    {projetos.map((proj) => {
+                      const idProj = proj.id || proj._id
+                      const nomeProj = proj.nome || proj.descricao || proj.texto
+                      return (
+                        <option key={idProj} value={idProj}>
+                          {nomeProj}
+                        </option>
+                      )
+                    })}
+                  </select>
+                )}
+              </div>
 
               <div className={stylesForm.botoes}>
                 <button type="button" onClick={() => setModalAberto(false)}>
                   Cancelar
                 </button>
-                <button type="submit">Salvar</button>
+                <button type="submit">Enviar</button>
               </div>
             </form>
           </div>
