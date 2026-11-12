@@ -1,24 +1,12 @@
 const prisma = require('../database/prisma');
+const formatarTarefa = require('../utils/formatarTarefa');
 
-// os três JOINs: só o nome/descrição de cada um
+// os três JOINs: nome/descrição e cor da prioridade
 const incluirNomes = {
   projetos: { select: { nome: true } },
   usuarios: { select: { nome: true } },
-  prioridades: { select: { descricao: true } },
+  prioridades: { select: { descricao: true, cor: true } },
 };
-
-// formata a tarefa para manter o contrato da API
-function formatarTarefa(tarefa) {
-  if (!tarefa) return null;
-
-  const { projetos, usuarios, prioridades, ...resto } = tarefa;
-  return {
-    ...resto,
-    projeto: projetos?.nome,
-    usuario: usuarios?.nome,
-    prioridade: prioridades?.descricao,
-  };
-}
 
 module.exports = {
   listar: async (query = {}) => {
@@ -52,7 +40,7 @@ module.exports = {
       include: incluirNomes,
     });
 
-    return formatarTarefa(tarefa);
+    return tarefa ? formatarTarefa(tarefa) : null;
   },
 
   contarPorUsuarioEColuna: async (usuarioId, coluna) => {
@@ -67,11 +55,11 @@ module.exports = {
   },
 
   adicionar: async (dados) => {
-    const colunaFinal = dados.coluna || "afazer";
+    const colunaFinal = dados.coluna || 'afazer';
     const agora = new Date();
 
-    const iniciadaEm = colunaFinal === "andamento" ? agora : null;
-    const concluidaEm = colunaFinal === "concluido" ? agora : null;
+    const iniciadaEm = colunaFinal === 'andamento' ? agora : null;
+    const concluidaEm = colunaFinal === 'concluido' ? agora : null;
 
     const novaTarefa = await prisma.tarefas.create({
       data: {
@@ -160,9 +148,9 @@ module.exports = {
     const total = rows.length;
 
     const porColuna = {
-      afazer: rows.filter((t) => (t.coluna || "afazer") === "afazer").length,
-      andamento: rows.filter((t) => t.coluna === "andamento").length,
-      concluido: rows.filter((t) => t.coluna === "concluido").length,
+      afazer: rows.filter((t) => (t.coluna || 'afazer') === 'afazer').length,
+      andamento: rows.filter((t) => t.coluna === 'andamento').length,
+      concluido: rows.filter((t) => t.coluna === 'concluido').length,
     };
 
     const porPrioridade = {
@@ -171,9 +159,8 @@ module.exports = {
       baixa: rows.filter((t) => t.id_prioridade === 3).length,
     };
 
-    const colunaMaisTarefas = Object.entries(porColuna).sort(
-      (a, b) => b[1] - a[1]
-    )[0]?.[0] || "afazer";
+    const colunaMaisTarefas =
+      Object.entries(porColuna).sort((a, b) => b[1] - a[1])[0]?.[0] || 'afazer';
 
     return {
       total,
