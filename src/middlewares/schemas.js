@@ -17,7 +17,6 @@ const schemas = {
       enum: ["alta", "media", "baixa"],
     },
    
-    projeto_id: { obrigatorio: false, tipo: "number" },
   },
 
   usuario: {
@@ -28,7 +27,7 @@ const schemas = {
 
   projeto: {
     nome: { obrigatorio: true, tipo: "string" },
-    descricao: { obrigatorio: true, tipo: "string", maxLength: 200 },
+    descricao: { obrigatorio: false, tipo: "string", maxLength: 200 },
   },
 };
 

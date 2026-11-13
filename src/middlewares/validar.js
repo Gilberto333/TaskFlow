@@ -23,12 +23,10 @@ function validar(schema, origem) {
         const numero = typeof valor === 'string' ? Number(valor) :
           valor;
         if (!Number.isInteger(numero) || numero <= 0) {
-          erros.push(`O campo '${campo}' deve ser um inteiro
-          positivo`);
+          erros.push(`O campo '${campo}' deve ser um inteiro positivo`);
         }
       } else if (regras.tipo && typeof valor !== regras.tipo) {
-        erros.push(`O campo '${campo}' deve ser do tipo
-        ${regras.tipo}`);
+        erros.push(`O campo '${campo}' deve ser do tipo ${regras.tipo}`);
       }
 
       // 3 — Valor fora dos permitidos (enum)
