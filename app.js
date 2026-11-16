@@ -56,10 +56,13 @@ app.use("/projetos", autenticar, projetosRoutes);
 
 app.use("/prioridades", autenticar, prioridadeRoutes);
 
+app.get("/", (req, res) => {
+    res.status(200).json({ mensagem: "TaskFlow API funcionando!" });
+});
+
 // Rota 404
 app.use((req, res) => {
-    const rota = `${req.method} ${req.url}`;
-    throw criarErro(404, `Rota ${rota} não encontrada`);
+    throw criarErro(404, "Rota não encontrada");
 });
 
 app.use(tratarErros);
