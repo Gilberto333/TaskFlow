@@ -61,7 +61,6 @@ async function resolverPrioridadeId(dados) {
       return encontrada.id;
     }
 
-    // Se a tabela 'prioridades' estiver vazia no banco, cria o registro automaticamente
     if (['baixa', 'media', 'alta'].includes(alvo)) {
       try {
         const nova = await prisma.prioridades.create({
