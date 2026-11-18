@@ -1,6 +1,7 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
 
 function autenticar(req, res, next) {
+
   const authHeader = req.headers["authorization"];
 
   if (!authHeader) return res.status(401).json({ erro: "Token não informado" });
@@ -10,7 +11,6 @@ function autenticar(req, res, next) {
   if (!token)
     return res
       .status(401)
-
       .json({ erro: "Formato inválido. Use: Bearer <token>" });
 
   try {
@@ -23,7 +23,6 @@ function autenticar(req, res, next) {
     if (erro.name === "TokenExpiredError")
       return res
         .status(401)
-
         .json({ erro: "Token expirado. Faça login novamente." });
 
     return res.status(401).json({ erro: "Token inválido." });

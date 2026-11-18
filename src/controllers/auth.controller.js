@@ -1,44 +1,40 @@
-const jwt = require("jsonwebtoken");
-const usuarioModel = require("../models/usuariosModel");
+const jwt = require('jsonwebtoken');
+const usuarioModel = require('../models/usuario.model');
+const criarErro = require('../utils/criarErro');
 
 const authController = {
-  async login(req, res) { 
-    try {
-      const { email, senha } = req.body;
+  async login(req, res) {
+    const { email, senha } = req.body;
 
-      if (!email || !senha) {
-        return res.status(400).json({ erro: "Email e senha são obrigatórios" });
-      }
-
-      const usuario = await usuarioModel.buscarPorEmail(email); 
-
-      if (!usuario) {
-        return res.status(401).json({ erro: "Credenciais inválidas" });
-      }
-
-      if (usuario.senha !== senha) {
-        return res.status(401).json({ erro: "Credenciais inválidas" });
-      }
-
-      const secret = process.env.JWT_SECRET || "chave_secreta_fallback_taskflow";
-
-      const token = jwt.sign(
-        { id: usuario.id, nome: usuario.nome },
-        secret,
-        { expiresIn: "8h" }
-      );
-
-      return res.json({
-        token,
-        usuario: { id: usuario.id, nome: usuario.nome },
-      });
-    } catch (erro) {
-      console.error("Erro ao realizar login:", erro);
-      return res.status(500).json({
-        erro: "Erro interno ao processar o login",
-        mensagem: erro.message,
-      });
+    // Validação básica
+    if (!email || !senha) {
+      throw criarErro(400, "Email e senha são obrigatórios");
     }
+
+    // 1. Verificar se o usuário existe na base de dados
+    const usuario = await usuarioModel.buscarPorEmail(email);
+
+    if (!usuario) {
+      throw criarErro(401, "Credenciais inválidas");
+    }
+
+    // 2. Verificar a senha (comparação com a coluna senha_hash da base de dados)
+    if (usuario.senha_hash !== senha) {
+      throw criarErro(401, "Credenciais inválidas");
+    }
+
+    // 3. Gerar o token JWT
+    const token = jwt.sign(
+      { id: usuario.id, nome: usuario.nome },
+      process.env.JWT_SECRET || 'chave_secreta_padrao',
+      { expiresIn: "8h" }
+    );
+
+    // 4. Retornar token e dados públicos
+    return res.json({
+      token,
+      usuario: { id: usuario.id, nome: usuario.nome }
+    });
   },
 };
 

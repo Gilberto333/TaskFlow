@@ -1,7 +1,29 @@
+# Dependências instaladas localmente pelo Node.js
 node_modules/
-.env
-.env.local
+/npm-debug.log*
+/yarn-error.log*
+/pnpm-debug.log*
 
-*.log
-npm-debug.log*
+# Pastas de build (arquivos finais de produção)
+dist/
+build/
+.next/
+out/
+
+# Variáveis de ambiente secretas (Tokens e Senhas)
+.env
+.env.test
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Arquivos gerados pelas IDEs e editores (VS Code, WebStorm, etc)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
 /src/generated/prisma

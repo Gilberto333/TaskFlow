@@ -1,15 +1,13 @@
-    function logger(req, res, next) {
+function logger(req, res, next) {
 
-const agora = new Date().toISOString();
+  const agora = new Date().toISOString();
+  const metodo = req.method;
+  const url = req.url;
+  const ip = req.ip || req.connection.remoteAddress;
 
-const metodo = req.method;
+  console.log(`[${agora}] ${metodo} ${url} — IP: ${ip}`);
 
-const url = req.url;
-
-const ip = req.ip || req.connection.remoteAddress;
-
-console.log(`[${agora}] ${metodo} ${url} — IP: ${ip}`);
-
-next();
+  next(); 
 }
+
 module.exports = logger;

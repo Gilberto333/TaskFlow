@@ -1,54 +1,92 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const swaggerUi = require('swagger-ui-express');
+const app = require('./app');
+const pool = require('./src/database/db');
 
-const openapi = require('./src/docs/openapi');
-const autenticar = require('./src/middlewares/autenticar');
+const PORTA = process.env.PORTA || 3000;
 
-const authRoutes = require('./src/routes/auth.routes');
-const usuariosRoutes = require('./src/routes/usuarios.Routes'); 
-const tarefasRoutes = require('./src/routes/tarefas.Routes');   
-const projetosRoutes = require('./src/routes/projetos.Routes'); 
-
-const app = express();
-
-const corsOrigin = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map(url => url.trim().replace(/\/$/, ''))
-  : ['https://task-flow-beta-sepia.vercel.app', 'http://localhost:5173', 'http://localhost:3000'];
-
-const corsOptions = {
-  origin: corsOrigin,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-app.use(cors(corsOptions));
-
-
-app.use(express.json());
-
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapi));
-
-app.use('/auth', authRoutes);
-app.use('/usuarios', usuariosRoutes); 
-
-
-app.use(autenticar);
-app.use('/tarefas', tarefasRoutes);
-app.use('/projetos', projetosRoutes);
-
-app.use((req, res) => {
-  res.status(404).json({
-    erro: {
-      mensagem: 'Rota não encontrada'
-    }
-  });
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) console.error('Erro ao conectar:', err.message);
+  else console.log('Banco conectado:', res.rows[0].now);
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor ativo na porta ${PORT}`);
-  console.log(`Documentação Swagger UI disponível em http://localhost:${PORT}`);
-});
+app.listen(PORTA, () => console.log(`Servidor rodando na Porta ${PORTA}`));
+
+
+
+
+//SERVE COMPLETO
+
+// require("dotenv").config();
+
+// const logger = require("./src/middlewares/logger");
+// const validarContentType = require("./src/middlewares/validarContentType");
+// const temporizador = require("./src/middlewares/temporizador");
+// const autenticar = require("./src/middlewares/autenticar");
+// // const cors = require("./src/middlewares/cors");
+// const tratarErros = require('./src/middlewares/erro.middleware');
+// const criarErro = require("./src/utils/criarErro");
+
+// const pool = require('./src/database/db');
+
+// const express = require("express");
+
+// const tarefasRoutes = require("./src/routes/tarefas.routes");
+// const usuariosRoutes = require("./src/routes/usuarios.routes");
+// const projetosRoutes = require("./src/routes/projetos.routes");
+// const authRoutes = require("./src/routes/auth.routes");
+// const prioridadeRoutes = require("./src/routes/prioridades.routes");
+
+// const swaggerUi = require('swagger-ui-express');
+// const openapi = require('./src/docs/openapi');
+// const SWAGGER_CDN = 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14';
+
+// const app = express();
+// const cors = require("cors");
+// const PORTA = process.env.PORTA || 3000;
+
+// pool.query('SELECT NOW()', (err, res) => {
+//   if (err) console.error('Erro ao conectar:', err.message);
+//   else console.log('Banco conectado:', res.rows[0].now);
+// });
+
+// app.use(
+//   cors({
+//     origin: process.env.CORS_ORIGIN,
+//     methods: ["GET", "POST", "PUT", "DELETE"],
+//     allowedHeaders: ["Content-Type", "Authorization"],
+//     maxAge: 86400,
+//   }),
+// );
+
+// app.use(express.json());
+// app.use(validarContentType);
+// app.use(logger);
+// app.use(temporizador);
+// // app.use(cors);
+
+// app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapi, {
+//   customCssUrl: `${SWAGGER_CDN}/swagger-ui.css`,
+//   customJs: [
+//     `${SWAGGER_CDN}/swagger-ui-bundle.js`,
+//     `${SWAGGER_CDN}/swagger-ui-standalone-preset.js`,
+//   ],
+// }));
+
+// app.use("/auth", authRoutes);
+// // Lista usuarios -----------------------------------------
+// app.use("/usuarios", autenticar, usuariosRoutes);
+// // Lista tarefas e faz todo CRUD --------------------------
+// app.use("/tarefas", autenticar, tarefasRoutes);
+// // Lista projetos e faz todo CRUD --------------------------
+// app.use("/projetos", autenticar, projetosRoutes);
+
+// app.use("/prioridades", autenticar, prioridadeRoutes);
+
+// // Rota 404
+// app.use((req, res) => {
+//   const rota = `${req.method} ${req.url}`;
+//   throw criarErro(404, `Rota ${rota} não encontrada`);
+// });
+
+// app.use(tratarErros);
+
+// app.listen(PORTA, () => console.log(`Porta ${PORTA}`));
